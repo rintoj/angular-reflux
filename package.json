@@ -1,0 +1,25 @@
+{
+  "name": "immutable-reflux",
+  "version": "0.0.1",
+  "description": "A uni-directional (flux-like) data flow archicture using immutablity and observables. Inspired by https://github.com/reflux/refluxjs",
+  "main": "dist/reflux.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rintoj/immutable-reflux.git"
+  },
+  "keywords": [
+    "Reflux",
+    "Flux",
+    "Immutable",
+    "Observables"
+  ],
+  "author": "rintoj",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rintoj/immutable-reflux/issues"
+  },
+  "homepage": "https://github.com/rintoj/immutable-reflux#readme"
+}
