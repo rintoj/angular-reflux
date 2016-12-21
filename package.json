@@ -1,25 +1,50 @@
 {
-  "name": "immutable-reflux",
-  "version": "0.0.1",
-  "description": "A uni-directional (flux-like) data flow archicture using immutablity and observables. Inspired by https://github.com/reflux/refluxjs",
+  "name": "angular-reflux",
+  "version": "1.0.0",
+  "description": "A uni-directional (flux-like) data flow architecture using immutability and observables.",
   "main": "dist/reflux.js",
+  "types": "dist/reflux.d.ts",
   "scripts": {
-    "test": "npm test"
+    "build": "npm run tsc --",
+    "lint": "tslint src/**/*.ts",
+    "prepublish": "npm run build",
+    "start": "npm run watch",
+    "test": "npm test",
+    "tsc": "node_modules/typescript/bin/tsc",
+    "tslint": "tslint",
+    "watch": "npm run tsc -- -w"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rintoj/immutable-reflux.git"
+    "url": "git+https://github.com/rintoj/angular-reflux.git"
   },
   "keywords": [
-    "Reflux",
-    "Flux",
-    "Immutable",
-    "Observables"
+    "flux",
+    "reflux",
+    "immutable",
+    "observable",
+    "rxjs",
+    "angular 2",
+    "angular"
   ],
-  "author": "rintoj",
+  "author": "Rinto Jose",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/rintoj/immutable-reflux/issues"
+    "url": "https://github.com/rintoj/angular-reflux/issues"
   },
-  "homepage": "https://github.com/rintoj/immutable-reflux#readme"
+  "homepage": "https://github.com/rintoj/angular-reflux#readme",
+  "devDependencies": {
+    "@angular/common": "2.1.1",
+    "@angular/compiler": "2.1.1",
+    "@angular/core": "2.1.1",
+    "@angular/platform-browser": "2.1.1",
+    "@angular/platform-browser-dynamic": "2.1.1",
+    "@types/node": "6.0.45",
+    "codelyzer": "1.0.0-beta.2",
+    "rxjs": "5.0.0-beta.12",
+    "seamless-immutable": "^7.0.1",
+    "tslint": "3.15.1",
+    "typescript": "2.0.6",
+    "zone.js": "0.6.25"
+  }
 }

@@ -1,34 +1,3 @@
-
-# angular-reflux
-
-A uni-directional (flux-like) data flow architecture using immutability and observables. Inspired by [https://github.com/reflux/refluxjs](https://github.com/reflux/refluxjs)
-
-## About
-
-## Usage
-
-```
-```
-
-## Contributing
-Contributions are very welcome! Just send a pull request. Feel free to contact me or checkout my [GitHub](https://github.com/rintoj) page.
-
-## Author
-
-**Rinto Jose** (rintoj)
-
-Follow me:
-  [GitHub](https://github.com/rintoj)
-| [Facebook](https://www.facebook.com/rinto.jose)
-| [Twitter](https://twitter.com/rintoj)
-| [Google+](https://plus.google.com/+RintoJoseMankudy)
-| [Youtube](https://youtube.com/+RintoJoseMankudy)
-
-## Versions
-[Check CHANGELOG](https://github.com/rintoj/angular2-virtual-scroll/blob/master/CHANGELOG.md)
-
-## License
-```
 The MIT License (MIT)
 
 Copyright (c) 2016 Rinto Jose (rintoj)
@@ -50,4 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
