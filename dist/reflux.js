@@ -1,18 +1,3 @@
-/**
- * @copyright © 2014 Tata Consultancy Services Limited. ALL RIGHTS RESERVED.
- *
- * @license The data contained herein shall not be disclosed, duplicated, or used
- * in whole or in part for any purpose other than to evaluate the proposal, provided
- * that if a contract is awarded to this offer as a result of, or in connection with,
- * the submission of these data, the recipient shall have the right to duplicate,
- * use or disclose the data to the extent provided in the agreement. This restriction
- * does not limit the right to use information contained in the data if it is obtained
- * from another source without restriction.
- *
- * @author Tata Consultancy Services (TCS)
- * @version v3.5
- * @since v3.5
- */
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -32,10 +17,6 @@ var Immutable = require('seamless-immutable');
 var Rx_1 = require('rxjs/Rx');
 var core_1 = require('@angular/core');
 var Rx_2 = require('rxjs/Rx');
-var logger_1 = require('../../util/logger');
-// reexport 'State' to make the code neater
-var application_state_ts_1 = require('./application-state.ts');
-exports.State = application_state_ts_1.State;
 /**
  * Represents replaceable state
  *
@@ -99,10 +80,7 @@ var StateStream = (function (_super) {
                 }
                 catch (error) {
                 }
-            }, function (error) {
-                logger_1.logger.error(error);
-                subscriber.error(error);
-            }, function () { return subscriber.complete(); });
+            }, function (error) { return subscriber.error(error); }, function () { return subscriber.complete(); });
             return subscription;
         }).share();
     };
@@ -200,7 +178,7 @@ var Action = (function () {
      * Dispatch this action. Returns an observable which will be completed when all action subscribers
      * complete it's processing
      *
-     * @returns {Observable<State>}
+     * @returns {Observable<S>}
      */
     Action.prototype.dispatch = function () {
         var _this = this;
@@ -240,10 +218,7 @@ var Action = (function () {
             }
             return state;
         })
-            .catch(function (error) {
-            logger_1.logger.error(error);
-            return Rx_2.Observable.empty();
-        })
+            .catch(function (error) { return Rx_2.Observable.empty(); })
             .share();
         return new Promise(function (resolve, reject) {
             // to trigger observable

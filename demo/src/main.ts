@@ -9,8 +9,6 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/toPromise';
 
-import * as MenuSpy from 'menuspy';
-
 import { AppModule } from './app/';
 import { enableProdMode } from '@angular/core';
 import { environment } from './environments/environment';

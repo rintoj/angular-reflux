@@ -1,31 +1,13 @@
-/**
- * @copyright © 2014 Tata Consultancy Services Limited. ALL RIGHTS RESERVED.
- *
- * @license The data contained herein shall not be disclosed, duplicated, or used
- * in whole or in part for any purpose other than to evaluate the proposal, provided
- * that if a contract is awarded to this offer as a result of, or in connection with,
- * the submission of these data, the recipient shall have the right to duplicate,
- * use or disclose the data to the extent provided in the agreement. This restriction
- * does not limit the right to use information contained in the data if it is obtained
- * from another source without restriction.
- *
- * @author Tata Consultancy Services (TCS)
- * @version v3.5
- * @since v3.5
- */
-import * as Immutable from 'seamless-immutable';
 import { BehaviorSubject } from 'rxjs/Rx';
 import { Observable } from 'rxjs/Rx';
-import { State } from './application-state';
-export { State } from './application-state.ts';
 /**
  * Observer for next value from observable (used by subscribe() function)
  *
  * @export
  * @interface ActionObserver
  */
-export interface ActionObserver {
-    (state: State, action: Action): Observable<State>;
+export interface ActionObserver<S> {
+    (state: S, action: Action<S>): Observable<S>;
 }
 /**
  * Observer for an error from observable (used by subscribe() function)
@@ -43,8 +25,8 @@ export interface ErrorObserver {
  * @interface StateSelector
  * @template T
  */
-export interface StateSelector<T> {
-    (state: State): T;
+export interface StateSelector<T, S> {
+    (state: S): T;
 }
 /**
  * Represents replaceable state
@@ -52,9 +34,9 @@ export interface StateSelector<T> {
  * @export
  * @class ReplaceableState
  */
-export declare class ReplaceableState {
-    state: State;
-    constructor(state: State);
+export declare class ReplaceableState<S> {
+    state: S;
+    constructor(state: S);
 }
 /**
  * Defines a stream for changing state in a reflux application
@@ -77,7 +59,7 @@ export declare class ReplaceableState {
  * @class StateStream
  * @extends {BehaviorSubject<State>}
  */
-export declare class StateStream extends BehaviorSubject<State> {
+export declare class StateStream<S> extends BehaviorSubject<S> {
     /**
      * Fires 'next' only when the value returned by this function changed from the previous value.
      *
@@ -85,7 +67,7 @@ export declare class StateStream extends BehaviorSubject<State> {
      * @param {StateSelector<T>} selector
      * @returns {Observable<T>}
      */
-    select<T>(selector: StateSelector<T>): Observable<T>;
+    select<T>(selector: StateSelector<T, S>): Observable<T>;
 }
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
@@ -113,11 +95,11 @@ export declare class StateStream extends BehaviorSubject<State> {
  * @export
  * @class Action
  */
-export declare class Action {
+export declare class Action<S> {
     protected static subscriptions: any[];
-    protected static state: Immutable<State>;
-    protected static stateStream: StateStream;
-    protected static _lastAction: Action;
+    protected static state: any;
+    protected static stateStream: any;
+    protected static _lastAction: Action<any>;
     /**
      * Create new state stream using the 'initialState'. This is used by Angular 2 bootstrap provider
      *
@@ -125,7 +107,7 @@ export declare class Action {
      * @param {State} initialState The initial state of the application
      * @returns The state stream.
      */
-    static stateStreamFactory(initialState: State): StateStream;
+    static stateStreamFactory<S>(initialState: S): any;
     /**
      * The last action occurred
      *
@@ -134,7 +116,7 @@ export declare class Action {
      *
      * @memberOf Action
      */
-    static readonly lastAction: Action;
+    static readonly lastAction: Action<any>;
     /**
      * Returns identity of this class
      *
@@ -149,12 +131,12 @@ export declare class Action {
      * @param {*} context Context binding
      * @returns {Action}
      */
-    subscribe(actionObserver: ActionObserver, context: any): Action;
+    subscribe(actionObserver: ActionObserver<S>, context: any): Action<S>;
     /**
      * Dispatch this action. Returns an observable which will be completed when all action subscribers
      * complete it's processing
      *
-     * @returns {Observable<State>}
+     * @returns {Observable<S>}
      */
-    dispatch(): Promise<State>;
+    dispatch(): Promise<S>;
 }

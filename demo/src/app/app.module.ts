@@ -1,29 +1,27 @@
+import { Action, StateStream } from '../../../src/reflux';
+
 import { AppComponent } from './app.component';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
-import { ListItemComponent } from './lists/list-item.component';
-import { ListWithApiComponent } from './lists/list-with-api.component';
-import { MultiColListComponent } from './lists/multi-col-list.component';
+import { INITIAL_STATE } from './state/state';
 import { NgModule } from '@angular/core';
-import { VerticalListComponent } from './lists/vertical-list.component';
-import { VirtualScrollModule } from '../../../src/virtual-scroll';
+
+const initialState = Symbol('initial-state');
 
 @NgModule({
     declarations: [
-        AppComponent,
-        ListItemComponent,
-        ListWithApiComponent,
-        MultiColListComponent,
-        VerticalListComponent
+        AppComponent
     ],
     imports: [
         BrowserModule,
         FormsModule,
-        HttpModule,
-        VirtualScrollModule
+        HttpModule
     ],
-    providers: [],
+    providers: [
+        { provide: initialState, useValue: INITIAL_STATE },
+        { provide: StateStream, useFactory: Action.stateStreamFactory, deps: [initialState] }
+    ],
     bootstrap: [AppComponent]
 })
 export class AppModule { }
