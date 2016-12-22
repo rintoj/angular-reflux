@@ -113,10 +113,10 @@ namespace Reflux {
     'use strict';
     export let lastAction: Action<any>;
     export let state = Immutable.from<any>({});
+    export const stateStream = new StateStream(Reflux.state);
     export const subscriptions: any[] = [];
 }
 
-export const STATE_STREAM = new StateStream(Reflux.state);
 
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
@@ -231,7 +231,7 @@ export class Action<S> {
             .map((state: any) => {
                 console.info('State Changed', state);
                 if (state != undefined) {
-                    STATE_STREAM.next(Reflux.state);
+                    Reflux.stateStream.next(Reflux.state);
                 }
                 return state;
             })
@@ -283,6 +283,25 @@ export function BindAction() {
                 return descriptor.value.call(this, state, action);
             }
         };
+    };
+}
+
+/**
+ * Bind data to a variable
+ *
+ * @example
+ * @BindData(state => state.todos)
+ * todos: Todo[];
+ *
+ * @export
+ * @param {*} selector
+ * @returns
+ */
+export function BindData<S>(selector: StateSelector<any, S>) {
+    return function (target: any, propertyKey: string) {
+        Reflux.stateStream
+            .select(selector)
+            .subscribe(data => target[propertyKey] = data);
     };
 }
 

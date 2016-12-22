@@ -5,20 +5,35 @@ ul {
 
 li {
   list-style: none;
-  padding: 0;
-  line-height: 1em;
   background: whitesmoke;
-  margin: 1em 0;
-  padding: 1em;
-  &.completed {
-    color: red;
+  margin: 1px;
+  padding: .5em 1em;
+  cursor: pointer;
+  &:hover {
+    background: #e8e8e8;
   }
   .text {
     display: inline-block;
     width: calc(100% - 6rem);
   }
+  &.completed {
+    color: gray;
+    .text {
+      text-decoration: line-through;
+    }
+  }
   button {
     background: transparent;
     color: #424242;
+    margin-right: 0;
+    float: right;
+    opacity: 0.8;
+    text-transform: uppercase;
+    font-size: .8em;
+    transition: opacity .2s ease, background .2s ease;
+    &:hover {
+      opacity: 1;
+      background: rgba(19, 19, 19, 0.1);
+    }
   }
 }
