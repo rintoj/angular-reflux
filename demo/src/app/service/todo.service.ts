@@ -11,6 +11,7 @@ export class TodoService {
     save(todos: Todo[]): Observable<any> {
         return Observable.create((observer: Observer<any>) => {
             localStorage.setItem(this.id, JSON.stringify(todos));
+            observer.next(todos);
             observer.complete();
         });
     }

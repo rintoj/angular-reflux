@@ -1,6 +1,6 @@
-import { AddTodoAction, RemoveTodoAction } from './state/actions';
+import { AddTodoAction, FetchTodosAction } from './state/actions';
+import { Component, OnInit } from '@angular/core';
 
-import { Component } from '@angular/core';
 import { Stores } from './store';
 import { Todo } from './state/todo';
 import { ViewEncapsulation } from '@angular/core';
@@ -8,33 +8,30 @@ import { ViewEncapsulation } from '@angular/core';
 @Component({
     selector: 'app-root',
     template: `
-        <input [(ngModel)]="todoText" placeholder="Enter todo here">
-        <button (click)="addTodo()">Add Todo</button>
-        <button (click)="removeTodo()">Remove Todo</button>
+        <form>
+            <input [(ngModel)]="todoText" name="title" placeholder="Enter todo here">
+            <button type="submit" (click)="addTodo()">+ Add</button>
+        </form>
         <todo-list></todo-list>
     `,
     styleUrls: ['./app.component.scss'],
     encapsulation: ViewEncapsulation.None
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
 
     protected todoText: string;
-    protected todo: Todo;
 
     constructor(private stores: Stores) { }
 
+    ngOnInit() {
+        new FetchTodosAction().dispatch();
+    }
+
     addTodo() {
+        if (this.todoText == undefined || this.todoText.trim() === '') return;
         new AddTodoAction({
-            title: 'Sample Task',
+            title: this.todoText.trim(),
             completed: false
         }).dispatch();
     }
-
-    removeTodo() {
-        new RemoveTodoAction({
-            title: 'Sample Task',
-            completed: false
-        }).dispatch();
-    }
-
 }

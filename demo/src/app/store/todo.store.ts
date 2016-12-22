@@ -1,4 +1,4 @@
-import { AddTodoAction, FetchTodosAction, RemoveTodoAction } from '../state/actions';
+import { AddTodoAction, FetchTodosAction, RemoveTodoAction, ToggleTodoAction } from '../state/actions';
 import { BindAction, Store } from '../state/reflux';
 
 import { Injectable } from '@angular/core';
@@ -18,7 +18,7 @@ export class TodoStore extends Store {
     fetchTodos(state: State, action: FetchTodosAction): Observable<State> {
         return Observable.create((observer: Observer<State>) => {
             this.todoService.fetch().subscribe(
-                todos => observer.next(todos),
+                todos => observer.next({ todos: todos }),
                 error => observer.error(error),
                 () => observer.complete()
             );
@@ -29,15 +29,40 @@ export class TodoStore extends Store {
     addTodo(state: State, action: AddTodoAction): Observable<State> {
         return Observable.create((observer: Observer<State>) => {
 
+            console.log('add todo', action);
+
             // calculate next todo
             action.todo.id = this.generateId();
             let todos = state.todos.concat([action.todo]);
 
             // use service to save
             this.todoService.save(todos).subscribe(
-                () => observer.next({
-                    todos: todos
-                }),
+                () => observer.next({ todos: todos }),
+                error => observer.error(error),
+                () => observer.complete()
+            );
+
+        }).share();
+    }
+
+    @BindAction()
+    toggleTodo(state: State, action: ToggleTodoAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+
+            console.log('toggle todo', action);
+            // calculate next todo
+            let todos = state.todos.map(todo => {
+                if (todo.id === action.todo.id) {
+                    return Object.assign({}, todo, {
+                        completed: !todo.completed
+                    });
+                }
+                return todo;
+            });
+
+            // use service to save
+            this.todoService.save(todos).subscribe(
+                () => observer.next({ todos: todos }),
                 error => observer.error(error),
                 () => observer.complete()
             );
@@ -53,9 +78,7 @@ export class TodoStore extends Store {
 
             // use service to save
             this.todoService.save(todos).subscribe(
-                () => observer.next({
-                    todos: todos
-                }),
+                () => observer.next({ todos: todos }),
                 error => observer.error(error),
                 () => observer.complete()
             );

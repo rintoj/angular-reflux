@@ -109,6 +109,15 @@ export class StateStream<S> extends BehaviorSubject<S> {
     }
 }
 
+namespace Reflux {
+    'use strict';
+    export let lastAction: Action<any>;
+    export let state = Immutable.from<any>({});
+    export const subscriptions: any[] = [];
+}
+
+export const STATE_STREAM = new StateStream(Reflux.state);
+
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
  *
@@ -137,24 +146,6 @@ export class StateStream<S> extends BehaviorSubject<S> {
  */
 export class Action<S> {
 
-    protected static subscriptions: any[] = [];
-    protected static state: any;
-    protected static stateStream: any;
-    protected static _lastAction: Action<any>;
-
-    /**
-     * Create new state stream using the 'initialState'. This is used by Angular 2 bootstrap provider
-     *
-     * @static
-     * @param {State} initialState The initial state of the application
-     * @returns The state stream.
-     */
-    public static stateStreamFactory<S>(initialState: S) {
-        Action.state = Immutable.from<S>(initialState);
-        Action.stateStream = new StateStream(initialState);
-        return Action.stateStream;
-    }
-
     /**
      * The last action occurred
      *
@@ -164,7 +155,7 @@ export class Action<S> {
      * @memberOf Action
      */
     public static get lastAction() {
-        return Action._lastAction;
+        return Reflux.lastAction;
     }
 
     /**
@@ -185,10 +176,10 @@ export class Action<S> {
      * @returns {Action}
      */
     public subscribe(actionObserver: ActionObserver<S>, context: any): Action<S> {
-        if (!Action.subscriptions[this.identity]) {
-            Action.subscriptions[this.identity] = [];
+        if (!Reflux.subscriptions[this.identity]) {
+            Reflux.subscriptions[this.identity] = [];
         }
-        Action.subscriptions[this.identity].push(actionObserver.bind(context));
+        Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
         return this;
     }
 
@@ -200,8 +191,8 @@ export class Action<S> {
      */
     dispatch(): Promise<S> {
 
-        Action._lastAction = this;
-        let subscriptions: ActionObserver<S>[] = Action.subscriptions[this.identity];
+        Reflux.lastAction = this;
+        let subscriptions: ActionObserver<S>[] = Reflux.subscriptions[this.identity];
         if (subscriptions == undefined || subscriptions.length === 0) {
             return new Promise(resolve => resolve());
         };
@@ -210,7 +201,7 @@ export class Action<S> {
 
             // convert 'Observable' returned by action subscribers to state
             .flatMap((actionObserver: ActionObserver<S>): Observable<any> => {
-                let value = actionObserver(Action.state, this);
+                let value = actionObserver(Reflux.state, this);
                 if (!(value instanceof Observable)) {
                     throw 'Store must return "Observable"';
                 }
@@ -223,12 +214,12 @@ export class Action<S> {
                     // replace the state with the new one if not 'undefined'
                     let nextState = (state as ReplaceableState<S>).state;
                     if (nextState == undefined) return;
-                    Action.state = nextState;
+                    Reflux.state = nextState;
                     return nextState;
 
                 } else if (state != undefined) {
                     // merge the state with existing state;
-                    Action.state = Action.state.merge(state, { deep: true });
+                    Reflux.state = Reflux.state.merge(state, { deep: true });
                 }
                 return state;
             })
@@ -238,8 +229,9 @@ export class Action<S> {
 
             // push 'next' state to 'stateStream' if there has been a change to the state
             .map((state: any) => {
+                console.info('State Changed', state);
                 if (state != undefined) {
-                    Action.stateStream.next(Action.state);
+                    STATE_STREAM.next(Reflux.state);
                 }
                 return state;
             })

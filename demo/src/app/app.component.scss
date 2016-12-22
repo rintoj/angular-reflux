@@ -4,8 +4,8 @@ input {
   border-bottom: 1px solid $border-color;
   padding: .5em;
   margin: 1em 0em;
-  display: block;
-  width: 100%;
+  display: inline-block;
+  width: calc(100% - 5.3rem);
 }
 
 button {
