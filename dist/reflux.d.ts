@@ -140,3 +140,35 @@ export declare class Action<S> {
      */
     dispatch(): Promise<S>;
 }
+/**
+ * Decorator for defining an action handler
+ *
+ * @example
+ *  @BindAction()
+ *  addTodo(state: State, action: AddTodoAction): Observable<State> {
+ *      return Observable.create((observer: Observer<State>) => {
+ *          observer.next({
+ *              todos: state.todos.concat([action.todo])
+ *          });
+ *          observer.complete();
+ *      }).share();
+ *  }
+ *
+ * @export
+ * @template S
+ * @returns
+ */
+export declare function BindAction<S>(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    value: (state: S, action: Action<S>) => Observable<S>;
+};
+/**
+ * Extend this class to create a store
+ *
+ * @export
+ * @class Store
+ */
+export declare class Store {
+    protected actions: any;
+    constructor();
+    protected bindActions(): void;
+}

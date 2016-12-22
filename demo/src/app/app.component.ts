@@ -11,6 +11,7 @@ import { ViewEncapsulation } from '@angular/core';
         <input [(ngModel)]="todoText" placeholder="Enter todo here">
         <button (click)="addTodo()">Add Todo</button>
         <button (click)="removeTodo()">Remove Todo</button>
+        <todo-list></todo-list>
     `,
     styleUrls: ['./app.component.scss'],
     encapsulation: ViewEncapsulation.None

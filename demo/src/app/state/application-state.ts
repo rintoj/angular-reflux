@@ -4,8 +4,3 @@ import { Todo } from './todo';
 export interface State {
     todos?: Todo[];
 }
-
-// define the initial state
-export const INITIAL_STATE: State = {
-    todos: []
-};

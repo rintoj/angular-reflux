@@ -1,46 +1,68 @@
-import { AddTodoAction, RemoveTodoAction } from '../state/actions';
+import { AddTodoAction, FetchTodosAction, RemoveTodoAction } from '../state/actions';
+import { BindAction, Store } from '../state/reflux';
 
-import { Http } from '@angular/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import { Observer } from 'rxjs/Observer';
-import { State } from '../state';
-
-function BindAction(ActionClass?: any) {
-
-    // console.log('before', actionClass);
-
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        new ActionClass().subscribe(target[propertyKey], target);
-    };
-}
+import { State } from '../state/application-state';
+import { TodoService } from '../service/todo.service';
 
 @Injectable()
-export class TodoStore {
+export class TodoStore extends Store {
 
-    constructor(private http: Http) {
-        console.log(http);
+    constructor(private todoService: TodoService) {
+        super();
     }
 
-    @BindAction(AddTodoAction)
+    @BindAction()
+    fetchTodos(state: State, action: FetchTodosAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+            this.todoService.fetch().subscribe(
+                todos => observer.next(todos),
+                error => observer.error(error),
+                () => observer.complete()
+            );
+        }).share();
+    }
+
+    @BindAction()
     addTodo(state: State, action: AddTodoAction): Observable<State> {
-        debugger;
         return Observable.create((observer: Observer<State>) => {
-            observer.next({
-                todos: state.todos.concat([action.todo])
-            });
-            observer.complete();
+
+            // calculate next todo
+            action.todo.id = this.generateId();
+            let todos = state.todos.concat([action.todo]);
+
+            // use service to save
+            this.todoService.save(todos).subscribe(
+                () => observer.next({
+                    todos: todos
+                }),
+                error => observer.error(error),
+                () => observer.complete()
+            );
+
         }).share();
     }
 
-    @BindAction(RemoveTodoAction)
+    @BindAction()
     removeTodo(state: State, action: RemoveTodoAction): Observable<State> {
-        debugger;
         return Observable.create((observer: Observer<State>) => {
-            observer.next({
-                todos: state.todos.concat([action.todo])
-            });
-            observer.complete();
+            // calculate next todo
+            let todos = state.todos.filter(item => item.id !== action.todo.id);
+
+            // use service to save
+            this.todoService.save(todos).subscribe(
+                () => observer.next({
+                    todos: todos
+                }),
+                error => observer.error(error),
+                () => observer.complete()
+            );
         }).share();
+    }
+
+    private generateId() {
+        return btoa(Math.random() + '').substr(4, 6).toLowerCase();
     }
 }

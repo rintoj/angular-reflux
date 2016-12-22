@@ -231,4 +231,56 @@ var Action = (function () {
     return Action;
 }());
 exports.Action = Action;
+/**
+ * Decorator for defining an action handler
+ *
+ * @example
+ *  @BindAction()
+ *  addTodo(state: State, action: AddTodoAction): Observable<State> {
+ *      return Observable.create((observer: Observer<State>) => {
+ *          observer.next({
+ *              todos: state.todos.concat([action.todo])
+ *          });
+ *          observer.complete();
+ *      }).share();
+ *  }
+ *
+ * @export
+ * @template S
+ * @returns
+ */
+function BindAction() {
+    return function (target, propertyKey, descriptor) {
+        var metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+        if (metadata.length < 2)
+            throw new Error('BindAction: function must have two arguments!');
+        target.actions = target.actions || (target.actions = {});
+        target.actions[propertyKey] = metadata[1];
+        return {
+            value: function (state, action) {
+                return descriptor.value.call(this, state, action);
+            }
+        };
+    };
+}
+exports.BindAction = BindAction;
+/**
+ * Extend this class to create a store
+ *
+ * @export
+ * @class Store
+ */
+var Store = (function () {
+    function Store() {
+        this.bindActions();
+    }
+    Store.prototype.bindActions = function () {
+        var _this = this;
+        if (this.actions == undefined)
+            return;
+        Object.keys(this.actions).forEach(function (name) { return new _this.actions[name]().subscribe(_this[name], _this); });
+    };
+    return Store;
+}());
+exports.Store = Store;
 //# sourceMappingURL=reflux.js.map

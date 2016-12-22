@@ -4,8 +4,11 @@ import { BehaviorSubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 
-// import { State } from './application-state';
-// import { logger } from '../../util/logger';
+/**
+ * Use reflection library
+ */
+declare var Reflect: any;
+
 
 /**
  * Observer for next value from observable (used by subscribe() function)
@@ -254,5 +257,60 @@ export class Action<S> {
                 // empty function
             }, reject, resolve);
         });
+    }
+}
+
+/**
+ * Decorator for defining an action handler
+ *
+ * @example
+ *  @BindAction()
+ *  addTodo(state: State, action: AddTodoAction): Observable<State> {
+ *      return Observable.create((observer: Observer<State>) => {
+ *          observer.next({
+ *              todos: state.todos.concat([action.todo])
+ *          });
+ *          observer.complete();
+ *      }).share();
+ *  }
+ *
+ * @export
+ * @template S
+ * @returns
+ */
+export function BindAction<S>() {
+
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+
+        let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+        if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
+        target.actions = target.actions || (target.actions = {});
+        target.actions[propertyKey] = metadata[1];
+
+        return {
+            value: function (state: S, action: Action<S>): Observable<S> {
+                return descriptor.value.call(this, state, action);
+            }
+        };
+    };
+}
+
+/**
+ * Extend this class to create a store
+ *
+ * @export
+ * @class Store
+ */
+export class Store {
+
+    protected actions: any;
+
+    constructor() {
+        this.bindActions();
+    }
+
+    protected bindActions() {
+        if (this.actions == undefined) return;
+        Object.keys(this.actions).forEach(name => new this.actions[name]().subscribe(this[name], this));
     }
 }
