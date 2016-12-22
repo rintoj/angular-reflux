@@ -1,8 +1,19 @@
 @import '../variables';
-virtual-scroll {
-  overflow: hidden;
-  overflow-y: auto;
-  border: 1px solid $border-color;
-  height: 75vh;
+input {
+  border: none;
+  border-bottom: 1px solid $border-color;
+  padding: .5em;
+  margin: 1em 0em;
   display: block;
+  width: 100%;
+}
+
+button {
+  border: none;
+  background: $primary-color;
+  color: $primary-text;
+  font-size: .9em;
+  border-radius: 3px;
+  padding: .2em 1em;
+  margin-right: .5em;
 }

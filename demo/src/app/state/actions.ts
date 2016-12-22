@@ -1,5 +1,6 @@
 import { Action } from './reflux';
-import { State } from './state';
-import { Todo } from './state';
+import { State } from './index';
+import { Todo } from './todo';
 
-export class AddTodo extends Action<State> { constructor(public todo: Todo) { super(); } }
+export class AddTodoAction extends Action<State> { constructor(public todo: Todo) { super(); } }
+export class RemoveTodoAction extends Action<State> { constructor(public todo: Todo) { super(); } }
