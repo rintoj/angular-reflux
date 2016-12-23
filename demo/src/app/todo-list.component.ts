@@ -2,7 +2,7 @@ import { RemoveTodoAction, ToggleTodoAction } from './state/actions';
 
 import { BindData } from './state/reflux';
 import { Component } from '@angular/core';
-import { State } from './state/application-state';
+import { State } from './state';
 import { Todo } from './state/todo';
 
 @Component({
