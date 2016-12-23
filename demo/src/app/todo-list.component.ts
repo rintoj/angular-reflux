@@ -22,6 +22,10 @@ export class TodoListComponent {
     @BindData((state: State) => state.todos)
     protected todos: Todo[];
 
+    todoDidChange(todos: Todo[]) {
+        this.todos = todos;
+    }
+
     toggleTodo(todo: Todo) {
         new ToggleTodoAction(todo).dispatch();
     }
