@@ -9,7 +9,6 @@ import { Observable } from 'rxjs/Rx';
  */
 declare var Reflect: any;
 
-
 /**
  * Observer for next value from observable (used by subscribe() function)
  *
@@ -111,6 +110,17 @@ export class StateStream<S> extends BehaviorSubject<S> {
 }
 
 /**
+ * Namespace for global variables
+ */
+namespace Reflux {
+    'use strict';
+    export let lastAction: Action<any>;
+    export let state = Immutable.from<any>({});
+    export const stateStream = new StateStream(Reflux.state);
+    export const subscriptions: any[] = [];
+}
+
+/**
  * Defines an action which an be extended to implement custom actions for a reflux application
  *
  * @example
@@ -138,24 +148,6 @@ export class StateStream<S> extends BehaviorSubject<S> {
  */
 export class Action<S> {
 
-    protected static subscriptions: any[] = [];
-    protected static state: any;
-    protected static stateStream: any;
-    protected static _lastAction: Action<any>;
-
-    /**
-     * Create new state stream using the 'initialState'. This is used by Angular 2 bootstrap provider
-     *
-     * @static
-     * @param {State} initialState The initial state of the application
-     * @returns The state stream.
-     */
-    public static stateStreamFactory<S>(initialState: S) {
-        Action.state = Immutable.from<S>(initialState);
-        Action.stateStream = new StateStream(initialState);
-        return Action.stateStream;
-    }
-
     /**
      * The last action occurred
      *
@@ -165,7 +157,7 @@ export class Action<S> {
      * @memberOf Action
      */
     public static get lastAction() {
-        return Action._lastAction;
+        return Reflux.lastAction;
     }
 
     /**
@@ -186,10 +178,10 @@ export class Action<S> {
      * @returns {Action}
      */
     public subscribe(actionObserver: ActionObserver<S>, context: any): Action<S> {
-        if (!Action.subscriptions[this.identity]) {
-            Action.subscriptions[this.identity] = [];
+        if (!Reflux.subscriptions[this.identity]) {
+            Reflux.subscriptions[this.identity] = [];
         }
-        Action.subscriptions[this.identity].push(actionObserver.bind(context));
+        Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
         return this;
     }
 
@@ -201,8 +193,8 @@ export class Action<S> {
      */
     dispatch(): Promise<S> {
 
-        Action._lastAction = this;
-        let subscriptions: ActionObserver<S>[] = Action.subscriptions[this.identity];
+        Reflux.lastAction = this;
+        let subscriptions: ActionObserver<S>[] = Reflux.subscriptions[this.identity];
         if (subscriptions == undefined || subscriptions.length === 0) {
             return new Promise(resolve => resolve());
         };
@@ -211,7 +203,7 @@ export class Action<S> {
 
             // convert 'Observable' returned by action subscribers to state
             .flatMap((actionObserver: ActionObserver<S>): Observable<any> => {
-                let value = actionObserver(Action.state, this);
+                let value = actionObserver(Reflux.state, this);
                 if (!(value instanceof Observable)) {
                     throw 'Store must return "Observable"';
                 }
@@ -224,12 +216,12 @@ export class Action<S> {
                     // replace the state with the new one if not 'undefined'
                     let nextState = (state as ReplaceableState<S>).state;
                     if (nextState == undefined) return;
-                    Action.state = nextState;
+                    Reflux.state = nextState;
                     return nextState;
 
                 } else if (state != undefined) {
                     // merge the state with existing state;
-                    Action.state = Action.state.merge(state, { deep: true });
+                    Reflux.state = Reflux.state.merge(state, { deep: true });
                 }
                 return state;
             })
@@ -240,7 +232,7 @@ export class Action<S> {
             // push 'next' state to 'stateStream' if there has been a change to the state
             .map((state: any) => {
                 if (state != undefined) {
-                    Action.stateStream.next(Action.state);
+                    Reflux.stateStream.next(Reflux.state);
                 }
                 return state;
             })
@@ -278,20 +270,77 @@ export class Action<S> {
  * @template S
  * @returns
  */
-export function BindAction<S>() {
+export function BindAction() {
 
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
 
         let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
-        target.actions = target.actions || (target.actions = {});
-        target.actions[propertyKey] = metadata[1];
+        target.__actions__ = target.__actions__ || (target.__actions__ = {});
+        target.__actions__[propertyKey] = metadata[1];
 
         return {
-            value: function (state: S, action: Action<S>): Observable<S> {
+            value: function (state: any, action: Action<any>): Observable<any> {
                 return descriptor.value.call(this, state, action);
             }
         };
+    };
+}
+
+/**
+ * Bind data for give key and target using a selector function
+ *
+ * @param {any} target
+ * @param {any} key
+ * @param {any} selectorFunc
+ */
+function bindData<S>(target: any, key: string, selector: StateSelector<any, S>) {
+    target.__dataBindings__.subscriptions.push(
+        Reflux.stateStream
+            .select(selector)
+            .subscribe(data => target[key] = data)
+    );
+}
+
+/**
+ * Bind data to a variable
+ *
+ * @example
+ * @BindData(state => state.todos)
+ * todos: Todo[];
+ *
+ * @export
+ * @param {*} selector
+ * @returns
+ */
+export function BindData<S>(selector: StateSelector<any, S>) {
+    return function (target: any, propertyKey: string) {
+
+        if (target.__dataBindings__ == undefined) {
+            target.__dataBindings__ = { selectors: {}, subscriptions: [], destroyed: false };
+
+            let originalInit = target.ngOnInit;
+            target.ngOnInit = function ngOnInit() {
+                if (this.__dataBindings__.destroyed !== true) return;
+                Object.keys(this.__dataBindings__.selectors)
+                    .forEach(key => bindData(this, key, this.__dataBindings__.selectors[key]));
+                this.__dataBindings__.destroyed = false;
+                return originalInit && originalInit();
+            };
+
+            let originalDestroy = target.ngOnDestroy;
+            target.ngOnDestroy = function ngOnDestroy() {
+                this.__dataBindings__.subscriptions.forEach(subscription => subscription.unsubscribe());
+                this.__dataBindings__.subscriptions = [];
+                this.__dataBindings__.destroyed = true;
+                return originalDestroy && originalDestroy();
+            };
+        }
+
+        target.__dataBindings__.selectors[propertyKey] = selector;
+        bindData(target, propertyKey, selector);
+
+
     };
 }
 
@@ -303,14 +352,10 @@ export function BindAction<S>() {
  */
 export class Store {
 
-    protected actions: any;
+    protected __actions__: any;
 
     constructor() {
-        this.bindActions();
-    }
-
-    protected bindActions() {
-        if (this.actions == undefined) return;
-        Object.keys(this.actions).forEach(name => new this.actions[name]().subscribe(this[name], this));
+        if (this.__actions__ == undefined) return;
+        Object.keys(this.__actions__).forEach(name => new this.__actions__[name]().subscribe(this[name], this));
     }
 }

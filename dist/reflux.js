@@ -92,6 +92,16 @@ var StateStream = (function (_super) {
 }(Rx_1.BehaviorSubject));
 exports.StateStream = StateStream;
 /**
+ * Namespace for global variables
+ */
+var Reflux;
+(function (Reflux) {
+    'use strict';
+    Reflux.state = Immutable.from({});
+    Reflux.stateStream = new StateStream(Reflux.state);
+    Reflux.subscriptions = [];
+})(Reflux || (Reflux = {}));
+/**
  * Defines an action which an be extended to implement custom actions for a reflux application
  *
  * @example
@@ -120,18 +130,6 @@ exports.StateStream = StateStream;
 var Action = (function () {
     function Action() {
     }
-    /**
-     * Create new state stream using the 'initialState'. This is used by Angular 2 bootstrap provider
-     *
-     * @static
-     * @param {State} initialState The initial state of the application
-     * @returns The state stream.
-     */
-    Action.stateStreamFactory = function (initialState) {
-        Action.state = Immutable.from(initialState);
-        Action.stateStream = new StateStream(initialState);
-        return Action.stateStream;
-    };
     Object.defineProperty(Action, "lastAction", {
         /**
          * The last action occurred
@@ -142,7 +140,7 @@ var Action = (function () {
          * @memberOf Action
          */
         get: function () {
-            return Action._lastAction;
+            return Reflux.lastAction;
         },
         enumerable: true,
         configurable: true
@@ -168,10 +166,10 @@ var Action = (function () {
      * @returns {Action}
      */
     Action.prototype.subscribe = function (actionObserver, context) {
-        if (!Action.subscriptions[this.identity]) {
-            Action.subscriptions[this.identity] = [];
+        if (!Reflux.subscriptions[this.identity]) {
+            Reflux.subscriptions[this.identity] = [];
         }
-        Action.subscriptions[this.identity].push(actionObserver.bind(context));
+        Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
         return this;
     };
     /**
@@ -182,15 +180,15 @@ var Action = (function () {
      */
     Action.prototype.dispatch = function () {
         var _this = this;
-        Action._lastAction = this;
-        var subscriptions = Action.subscriptions[this.identity];
+        Reflux.lastAction = this;
+        var subscriptions = Reflux.subscriptions[this.identity];
         if (subscriptions == undefined || subscriptions.length === 0) {
             return new Promise(function (resolve) { return resolve(); });
         }
         ;
         var observable = Rx_2.Observable.from(subscriptions)
             .flatMap(function (actionObserver) {
-            var value = actionObserver(Action.state, _this);
+            var value = actionObserver(Reflux.state, _this);
             if (!(value instanceof Rx_2.Observable)) {
                 throw 'Store must return "Observable"';
             }
@@ -202,19 +200,19 @@ var Action = (function () {
                 var nextState = state.state;
                 if (nextState == undefined)
                     return;
-                Action.state = nextState;
+                Reflux.state = nextState;
                 return nextState;
             }
             else if (state != undefined) {
                 // merge the state with existing state;
-                Action.state = Action.state.merge(state, { deep: true });
+                Reflux.state = Reflux.state.merge(state, { deep: true });
             }
             return state;
         })
             .skipWhile(function (state, i) { return i + 1 < subscriptions.length; })
             .map(function (state) {
             if (state != undefined) {
-                Action.stateStream.next(Action.state);
+                Reflux.stateStream.next(Reflux.state);
             }
             return state;
         })
@@ -227,7 +225,6 @@ var Action = (function () {
             }, reject, resolve);
         });
     };
-    Action.subscriptions = [];
     return Action;
 }());
 exports.Action = Action;
@@ -254,8 +251,8 @@ function BindAction() {
         var metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2)
             throw new Error('BindAction: function must have two arguments!');
-        target.actions = target.actions || (target.actions = {});
-        target.actions[propertyKey] = metadata[1];
+        target.__actions__ = target.__actions__ || (target.__actions__ = {});
+        target.__actions__[propertyKey] = metadata[1];
         return {
             value: function (state, action) {
                 return descriptor.value.call(this, state, action);
@@ -265,6 +262,56 @@ function BindAction() {
 }
 exports.BindAction = BindAction;
 /**
+ * Bind data for give key and target using a selector function
+ *
+ * @param {any} target
+ * @param {any} key
+ * @param {any} selectorFunc
+ */
+function bindData(target, key, selector) {
+    target.__dataBindings__.subscriptions.push(Reflux.stateStream
+        .select(selector)
+        .subscribe(function (data) { return target[key] = data; }));
+}
+/**
+ * Bind data to a variable
+ *
+ * @example
+ * @BindData(state => state.todos)
+ * todos: Todo[];
+ *
+ * @export
+ * @param {*} selector
+ * @returns
+ */
+function BindData(selector) {
+    return function (target, propertyKey) {
+        if (target.__dataBindings__ == undefined) {
+            target.__dataBindings__ = { selectors: {}, subscriptions: [], destroyed: false };
+            var originalInit_1 = target.ngOnInit;
+            target.ngOnInit = function ngOnInit() {
+                var _this = this;
+                if (this.__dataBindings__.destroyed !== true)
+                    return;
+                Object.keys(this.__dataBindings__.selectors)
+                    .forEach(function (key) { return bindData(_this, key, _this.__dataBindings__.selectors[key]); });
+                this.__dataBindings__.destroyed = false;
+                return originalInit_1 && originalInit_1();
+            };
+            var originalDestroy_1 = target.ngOnDestroy;
+            target.ngOnDestroy = function ngOnDestroy() {
+                this.__dataBindings__.subscriptions.forEach(function (subscription) { return subscription.unsubscribe(); });
+                this.__dataBindings__.subscriptions = [];
+                this.__dataBindings__.destroyed = true;
+                return originalDestroy_1 && originalDestroy_1();
+            };
+        }
+        target.__dataBindings__.selectors[propertyKey] = selector;
+        bindData(target, propertyKey, selector);
+    };
+}
+exports.BindData = BindData;
+/**
  * Extend this class to create a store
  *
  * @export
@@ -272,14 +319,11 @@ exports.BindAction = BindAction;
  */
 var Store = (function () {
     function Store() {
-        this.bindActions();
-    }
-    Store.prototype.bindActions = function () {
         var _this = this;
-        if (this.actions == undefined)
+        if (this.__actions__ == undefined)
             return;
-        Object.keys(this.actions).forEach(function (name) { return new _this.actions[name]().subscribe(_this[name], _this); });
-    };
+        Object.keys(this.__actions__).forEach(function (name) { return new _this.__actions__[name]().subscribe(_this[name], _this); });
+    }
     return Store;
 }());
 exports.Store = Store;

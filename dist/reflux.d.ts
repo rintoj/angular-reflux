@@ -96,18 +96,6 @@ export declare class StateStream<S> extends BehaviorSubject<S> {
  * @class Action
  */
 export declare class Action<S> {
-    protected static subscriptions: any[];
-    protected static state: any;
-    protected static stateStream: any;
-    protected static _lastAction: Action<any>;
-    /**
-     * Create new state stream using the 'initialState'. This is used by Angular 2 bootstrap provider
-     *
-     * @static
-     * @param {State} initialState The initial state of the application
-     * @returns The state stream.
-     */
-    static stateStreamFactory<S>(initialState: S): any;
     /**
      * The last action occurred
      *
@@ -158,9 +146,21 @@ export declare class Action<S> {
  * @template S
  * @returns
  */
-export declare function BindAction<S>(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    value: (state: S, action: Action<S>) => Observable<S>;
+export declare function BindAction(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+    value: (state: any, action: Action<any>) => Observable<any>;
 };
+/**
+ * Bind data to a variable
+ *
+ * @example
+ * @BindData(state => state.todos)
+ * todos: Todo[];
+ *
+ * @export
+ * @param {*} selector
+ * @returns
+ */
+export declare function BindData<S>(selector: StateSelector<any, S>): (target: any, propertyKey: string) => void;
 /**
  * Extend this class to create a store
  *
@@ -168,7 +168,6 @@ export declare function BindAction<S>(): (target: any, propertyKey: string, desc
  * @class Store
  */
 export declare class Store {
-    protected actions: any;
+    protected __actions__: any;
     constructor();
-    protected bindActions(): void;
 }
