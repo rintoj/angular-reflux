@@ -109,6 +109,9 @@ export class StateStream<S> extends BehaviorSubject<S> {
     }
 }
 
+/**
+ * Namespace for global variables
+ */
 namespace Reflux {
     'use strict';
     export let lastAction: Action<any>;
@@ -116,7 +119,6 @@ namespace Reflux {
     export const stateStream = new StateStream(Reflux.state);
     export const subscriptions: any[] = [];
 }
-
 
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
@@ -229,7 +231,6 @@ export class Action<S> {
 
             // push 'next' state to 'stateStream' if there has been a change to the state
             .map((state: any) => {
-                console.info('State Changed', state);
                 if (state != undefined) {
                     Reflux.stateStream.next(Reflux.state);
                 }
@@ -275,8 +276,8 @@ export function BindAction() {
 
         let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
-        target.actions = target.actions || (target.actions = {});
-        target.actions[propertyKey] = metadata[1];
+        target.__actions__ = target.__actions__ || (target.__actions__ = {});
+        target.__actions__[propertyKey] = metadata[1];
 
         return {
             value: function (state: any, action: Action<any>): Observable<any> {
@@ -284,6 +285,21 @@ export function BindAction() {
             }
         };
     };
+}
+
+/**
+ * Bind data for give key and target using a selector function
+ *
+ * @param {any} target
+ * @param {any} key
+ * @param {any} selectorFunc
+ */
+function bindData<S>(target: any, key: string, selector: StateSelector<any, S>) {
+    target.__dataBindings__.subscriptions.push(
+        Reflux.stateStream
+            .select(selector)
+            .subscribe(data => target[key] = data)
+    );
 }
 
 /**
@@ -299,9 +315,32 @@ export function BindAction() {
  */
 export function BindData<S>(selector: StateSelector<any, S>) {
     return function (target: any, propertyKey: string) {
-        Reflux.stateStream
-            .select(selector)
-            .subscribe(data => target[propertyKey] = data);
+
+        if (target.__dataBindings__ == undefined) {
+            target.__dataBindings__ = { selectors: {}, subscriptions: [], destroyed: false };
+
+            let originalInit = target.ngOnInit;
+            target.ngOnInit = function ngOnInit() {
+                if (this.__dataBindings__.destroyed !== true) return;
+                Object.keys(this.__dataBindings__.selectors)
+                    .forEach(key => bindData(this, key, this.__dataBindings__.selectors[key]));
+                this.__dataBindings__.destroyed = false;
+                return originalInit && originalInit();
+            };
+
+            let originalDestroy = target.ngOnDestroy;
+            target.ngOnDestroy = function ngOnDestroy() {
+                this.__dataBindings__.subscriptions.forEach(subscription => subscription.unsubscribe());
+                this.__dataBindings__.subscriptions = [];
+                this.__dataBindings__.destroyed = true;
+                return originalDestroy && originalDestroy();
+            };
+        }
+
+        target.__dataBindings__.selectors[propertyKey] = selector;
+        bindData(target, propertyKey, selector);
+
+
     };
 }
 
@@ -313,15 +352,11 @@ export function BindData<S>(selector: StateSelector<any, S>) {
  */
 export class Store {
 
-    protected actions: any;
+    protected __actions__: any;
 
     constructor() {
-        this.bindActions();
-    }
-
-    protected bindActions() {
-        if (this.actions == undefined) return;
-        Object.keys(this.actions).forEach(name => new this.actions[name]().subscribe(this[name], this));
+        if (this.__actions__ == undefined) return;
+        Object.keys(this.__actions__).forEach(name => new this.__actions__[name]().subscribe(this[name], this));
     }
 }
 

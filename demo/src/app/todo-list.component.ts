@@ -1,5 +1,3 @@
-// import { BindData } from './state/reflux';
-
 import { RemoveTodoAction, ToggleTodoAction } from './state/actions';
 
 import { BindData } from './state/reflux';

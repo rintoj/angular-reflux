@@ -7,6 +7,11 @@ input {
   display: inline-block;
   width: calc(100% - 5.5rem);
   margin-right: 1.2em;
+  outline: none;
+  &:focus,
+  &:active {
+    outline: none;
+  }
 }
 
 button {
@@ -17,4 +22,9 @@ button {
   border-radius: 3px;
   padding: .2em 1em;
   margin-right: .5em;
+  outline: none;
+  &:focus,
+  &:active {
+    outline: none;
+  }
 }

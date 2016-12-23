@@ -29,8 +29,6 @@ export class TodoStore extends Store {
     addTodo(state: State, action: AddTodoAction): Observable<State> {
         return Observable.create((observer: Observer<State>) => {
 
-            console.log('add todo', action);
-
             // calculate next todo
             action.todo.id = this.generateId();
             let todos = state.todos.concat([action.todo]);
@@ -49,7 +47,6 @@ export class TodoStore extends Store {
     toggleTodo(state: State, action: ToggleTodoAction): Observable<State> {
         return Observable.create((observer: Observer<State>) => {
 
-            console.log('toggle todo', action);
             // calculate next todo
             let todos = state.todos.map(todo => {
                 if (todo.id === action.todo.id) {

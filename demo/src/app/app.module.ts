@@ -1,5 +1,3 @@
-import { Action, StateStream } from '../../../src/reflux';
-
 import { AppComponent } from './app.component';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -8,9 +6,6 @@ import { NgModule } from '@angular/core';
 import { SERVICES } from './service';
 import { STORES } from './store';
 import { TodoListComponent } from './todo-list.component';
-
-// import { INITIAL_STATE } from './state/application-state';
-// const initialState = Symbol('initial-state');
 
 @NgModule({
     declarations: [
@@ -23,8 +18,6 @@ import { TodoListComponent } from './todo-list.component';
         HttpModule
     ],
     providers: [
-        { provide: 'initial-state', useValue: { todos: [] } },
-        { provide: StateStream, useFactory: Action.stateStreamFactory, deps: ['initial-state'] },
         ...STORES,
         ...SERVICES
     ],
