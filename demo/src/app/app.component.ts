@@ -1,13 +1,15 @@
-import { AddTodoAction, FetchTodosAction } from './state/actions';
+import { AddTodoAction, FetchTodosAction, ToggleTodoListAction } from './state/actions';
 import { Component, OnInit } from '@angular/core';
 
+import { BindData } from './state/reflux';
+import { State } from './state';
 import { Stores } from './store';
 import { ViewEncapsulation } from '@angular/core';
 
 @Component({
     selector: 'app-root',
     template: `
-        <button  (click)="showTodo = !showTodo">{{!showTodo ? 'Show' : 'Hide'}} Todo</button>
+        <button  (click)="toggleTodoList()">{{!showTodo ? 'Show' : 'Hide'}} Todo</button>
         <span *ngIf="showTodo">
             <form>
                 <input [(ngModel)]="todoText" name="title" placeholder="Enter todo here">
@@ -21,7 +23,9 @@ import { ViewEncapsulation } from '@angular/core';
 })
 export class AppComponent implements OnInit {
 
+    @BindData((state: State) => state.showTodo)
     protected showTodo: boolean = true;
+
     protected todoText: string;
 
     constructor(private stores: Stores) { }
@@ -36,5 +40,9 @@ export class AppComponent implements OnInit {
             title: this.todoText.trim(),
             completed: false
         }).dispatch();
+    }
+
+    toggleTodoList() {
+        new ToggleTodoListAction().dispatch();
     }
 }

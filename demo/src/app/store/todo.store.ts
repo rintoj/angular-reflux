@@ -1,4 +1,4 @@
-import { AddTodoAction, FetchTodosAction, RemoveTodoAction, ToggleTodoAction } from '../state/actions';
+import { AddTodoAction, FetchTodosAction, RemoveTodoAction, ToggleTodoAction, ToggleTodoListAction } from '../state/actions';
 import { BindAction, Store } from '../state/reflux';
 
 import { Injectable } from '@angular/core';
@@ -59,6 +59,15 @@ export class TodoStore extends Store {
                 error => observer.error(error),
                 () => observer.complete()
             );
+        }).share();
+    }
+
+    @BindAction()
+    toggleTodoList(state: State, action: ToggleTodoListAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+            observer.next({
+                showTodo: !state.showTodo
+            });
         }).share();
     }
 

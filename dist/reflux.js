@@ -17,6 +17,8 @@ var Immutable = require('seamless-immutable');
 var Rx_1 = require('rxjs/Rx');
 var core_1 = require('@angular/core');
 var Rx_2 = require('rxjs/Rx');
+var REFLUX_ACTION_KEY = Symbol('reflux:actions');
+var REFLUX_DATA_BINDINGS_KEY = Symbol('reflux:dataBindings');
 /**
  * Represents replaceable state
  *
@@ -68,17 +70,10 @@ var StateStream = (function (_super) {
         return Rx_2.Observable.create(function (subscriber) {
             var previousState;
             var subscription = _this.subscribe(function (state) {
-                try {
-                    if (state === undefined)
-                        return;
-                    var currentValue = selector(state);
-                    var previousValue = previousState != undefined ? selector(previousState) : undefined;
-                    if (currentValue !== previousValue) {
-                        previousState = state;
-                        subscriber.next(currentValue);
-                    }
-                }
-                catch (error) {
+                var selection = select(state, selector);
+                if (selection !== select(previousState, selector)) {
+                    previousState = state;
+                    subscriber.next(selection);
                 }
             }, function (error) { return subscriber.error(error); }, function () { return subscriber.complete(); });
             return subscription;
@@ -91,6 +86,18 @@ var StateStream = (function (_super) {
     return StateStream;
 }(Rx_1.BehaviorSubject));
 exports.StateStream = StateStream;
+function select(state, selector) {
+    if (state == undefined)
+        return;
+    if (selector == undefined)
+        return state;
+    try {
+        return selector(state);
+    }
+    catch (error) {
+        return undefined;
+    }
+}
 /**
  * Namespace for global variables
  */
@@ -251,8 +258,12 @@ function BindAction() {
         var metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2)
             throw new Error('BindAction: function must have two arguments!');
-        target.__actions__ = target.__actions__ || (target.__actions__ = {});
-        target.__actions__[propertyKey] = metadata[1];
+        var refluxActions = {};
+        if (Reflect.hasMetadata(REFLUX_ACTION_KEY, target)) {
+            refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, target);
+        }
+        refluxActions[propertyKey] = metadata[1];
+        Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target);
         return {
             value: function (state, action) {
                 return descriptor.value.call(this, state, action);
@@ -269,9 +280,13 @@ exports.BindAction = BindAction;
  * @param {any} selectorFunc
  */
 function bindData(target, key, selector) {
-    target.__dataBindings__.subscriptions.push(Reflux.stateStream
+    return Reflux.stateStream
         .select(selector)
-        .subscribe(function (data) { return target[key] = data; }));
+        .subscribe(function (data) {
+        if (typeof target[key] === 'function')
+            return target[key](data);
+        target[key] = data;
+    });
 }
 /**
  * Bind data to a variable
@@ -286,28 +301,36 @@ function bindData(target, key, selector) {
  */
 function BindData(selector) {
     return function (target, propertyKey) {
-        if (target.__dataBindings__ == undefined) {
-            target.__dataBindings__ = { selectors: {}, subscriptions: [], destroyed: false };
+        var bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target);
+        if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
+            bindingsMeta = { selectors: {}, subscriptions: [], destroyed: false };
             var originalInit_1 = target.ngOnInit;
             target.ngOnInit = function ngOnInit() {
                 var _this = this;
-                if (this.__dataBindings__.destroyed !== true)
-                    return;
-                Object.keys(this.__dataBindings__.selectors)
-                    .forEach(function (key) { return bindData(_this, key, _this.__dataBindings__.selectors[key]); });
-                this.__dataBindings__.destroyed = false;
+                var dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined && dataBindings.destroyed === true) {
+                    dataBindings.subscriptions = dataBindings.subscriptions.concat(Object.keys(dataBindings.selectors)
+                        .map(function (key) { return bindData(_this, key, dataBindings.selectors[key]); }));
+                    dataBindings.destroyed = false;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalInit_1 && originalInit_1();
             };
             var originalDestroy_1 = target.ngOnDestroy;
             target.ngOnDestroy = function ngOnDestroy() {
-                this.__dataBindings__.subscriptions.forEach(function (subscription) { return subscription.unsubscribe(); });
-                this.__dataBindings__.subscriptions = [];
-                this.__dataBindings__.destroyed = true;
+                var dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined) {
+                    dataBindings.subscriptions.forEach(function (subscription) { return subscription.unsubscribe(); });
+                    dataBindings.subscriptions = [];
+                    dataBindings.destroyed = true;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalDestroy_1 && originalDestroy_1();
             };
         }
-        target.__dataBindings__.selectors[propertyKey] = selector;
-        bindData(target, propertyKey, selector);
+        bindingsMeta.selectors[propertyKey] = selector;
+        bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+        Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, bindingsMeta, target);
     };
 }
 exports.BindData = BindData;
@@ -320,9 +343,10 @@ exports.BindData = BindData;
 var Store = (function () {
     function Store() {
         var _this = this;
-        if (this.__actions__ == undefined)
+        if (!Reflect.hasMetadata(REFLUX_ACTION_KEY, this))
             return;
-        Object.keys(this.__actions__).forEach(function (name) { return new _this.__actions__[name]().subscribe(_this[name], _this); });
+        var refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, this);
+        Object.keys(refluxActions).forEach(function (name) { return new refluxActions[name]().subscribe(_this[name], _this); });
     }
     return Store;
 }());

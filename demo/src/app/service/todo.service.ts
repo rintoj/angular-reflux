@@ -11,14 +11,15 @@ export class TodoService {
 
     fetch(): Observable<Todo[]> {
         return Observable.create((observer: Observer<Todo[]>) => {
-            observer.next(JSON.parse(localStorage.getItem(this.url) || '[]'));
+            this._todos = JSON.parse(localStorage.getItem(this.url) || '[]');
+            observer.next(this._todos);
             observer.complete();
         });
     }
 
     add(todo: Todo): Observable<Todo[]> {
         return Observable.create((observer: Observer<Todo>) => {
-            this.todos = (this.todos || []).concat([todo]);
+            this.todos = this.todos.concat([todo]);
             observer.next(this.todos);
             observer.complete();
         });
@@ -26,7 +27,7 @@ export class TodoService {
 
     remove(id: string): Observable<Todo[]> {
         return Observable.create((observer: Observer<Todo>) => {
-            this.todos = (this.todos || []).filter(item => item.id !== id);
+            this.todos = this.todos.filter(item => item.id !== id);
             observer.next(this.todos);
             observer.complete();
         });
@@ -46,7 +47,7 @@ export class TodoService {
     }
 
     private get todos(): Todo[] {
-        return this._todos;
+        return this._todos || [];
     }
 
     private set todos(todos: Todo[]) {

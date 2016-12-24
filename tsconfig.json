@@ -22,8 +22,7 @@
     "exclude": [
         "node_modules",
         "demo",
-        "dist",
-        "sample"
+        "dist"
     ],
     "compileOnSave": false,
     "buildOnSave": false

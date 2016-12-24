@@ -168,6 +168,5 @@ export declare function BindData<S>(selector: StateSelector<any, S>): (target: a
  * @class Store
  */
 export declare class Store {
-    protected __actions__: any;
     constructor();
 }

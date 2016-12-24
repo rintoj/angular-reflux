@@ -91,17 +91,10 @@ export class StateStream<S> extends BehaviorSubject<S> {
             let previousState: S;
             let subscription = this.subscribe(
                 (state: S) => {
-                    try {
-                        if (state === undefined) return;
-                        let currentValue = selector(state);
-                        let previousValue = previousState != undefined ? selector(previousState) : undefined;
-                        if (currentValue !== previousValue) {
-                            previousState = state;
-                            subscriber.next(currentValue);
-                        }
-                    } catch (error) {
-                        // logger.error(error);
-                        // subscriber.error(error);
+                    let selection = select(state, selector);
+                    if (selection !== select(previousState, selector)) {
+                        previousState = state;
+                        subscriber.next(selection);
                     }
                 },
                 error => subscriber.error(error),
@@ -110,6 +103,16 @@ export class StateStream<S> extends BehaviorSubject<S> {
 
             return subscription;
         }).share();
+    }
+}
+
+function select(state: any, selector: StateSelector<any, any>) {
+    if (state == undefined) return;
+    if (selector == undefined) return state;
+    try {
+        return selector(state);
+    } catch (error) {
+        return undefined;
     }
 }
 
@@ -333,24 +336,28 @@ export function BindData<S>(selector: StateSelector<any, S>) {
             let originalInit = target.ngOnInit;
             target.ngOnInit = function ngOnInit() {
                 let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
-                if (dataBindings == undefined || dataBindings.destroyed !== true) return;
-                bindingsMeta.subscriptions = bindingsMeta.subscriptions.concat(
-                    Object.keys(dataBindings.selectors)
-                        .map(key => bindData(this, key, dataBindings.selectors[key]))
-                );
-                dataBindings.destroyed = false;
-                Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                if (dataBindings != undefined && dataBindings.destroyed === true) {
+
+                    dataBindings.subscriptions = dataBindings.subscriptions.concat(
+                        Object.keys(dataBindings.selectors)
+                            .map(key => bindData(this, key, dataBindings.selectors[key]))
+                    );
+
+                    dataBindings.destroyed = false;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalInit && originalInit();
             };
 
             let originalDestroy = target.ngOnDestroy;
             target.ngOnDestroy = function ngOnDestroy() {
                 let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
-                if (dataBindings == undefined) return;
-                dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe());
-                dataBindings.subscriptions = [];
-                dataBindings.destroyed = true;
-                Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                if (dataBindings != undefined) {
+                    dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe());
+                    dataBindings.subscriptions = [];
+                    dataBindings.destroyed = true;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalDestroy && originalDestroy();
             };
         }

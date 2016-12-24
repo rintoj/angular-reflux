@@ -3,11 +3,15 @@ import * as Immutable from 'seamless-immutable';
 import { BehaviorSubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
+import { Subscription } from 'rxjs/Subscription';
 
 /**
  * Use reflection library
  */
 declare var Reflect: any;
+
+const REFLUX_ACTION_KEY = Symbol('reflux:actions');
+const REFLUX_DATA_BINDINGS_KEY = Symbol('reflux:dataBindings');
 
 /**
  * Observer for next value from observable (used by subscribe() function)
@@ -87,17 +91,10 @@ export class StateStream<S> extends BehaviorSubject<S> {
             let previousState: S;
             let subscription = this.subscribe(
                 (state: S) => {
-                    try {
-                        if (state === undefined) return;
-                        let currentValue = selector(state);
-                        let previousValue = previousState != undefined ? selector(previousState) : undefined;
-                        if (currentValue !== previousValue) {
-                            previousState = state;
-                            subscriber.next(currentValue);
-                        }
-                    } catch (error) {
-                        // logger.error(error);
-                        // subscriber.error(error);
+                    let selection = select(state, selector);
+                    if (selection !== select(previousState, selector)) {
+                        previousState = state;
+                        subscriber.next(selection);
                     }
                 },
                 error => subscriber.error(error),
@@ -106,6 +103,16 @@ export class StateStream<S> extends BehaviorSubject<S> {
 
             return subscription;
         }).share();
+    }
+}
+
+function select(state: any, selector: StateSelector<any, any>) {
+    if (state == undefined) return;
+    if (selector == undefined) return state;
+    try {
+        return selector(state);
+    } catch (error) {
+        return undefined;
     }
 }
 
@@ -276,8 +283,13 @@ export function BindAction() {
 
         let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
-        target.__actions__ = target.__actions__ || (target.__actions__ = {});
-        target.__actions__[propertyKey] = metadata[1];
+
+        let refluxActions = {};
+        if (Reflect.hasMetadata(REFLUX_ACTION_KEY, target)) {
+            refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, target);
+        }
+        refluxActions[propertyKey] = metadata[1];
+        Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target);
 
         return {
             value: function (state: any, action: Action<any>): Observable<any> {
@@ -294,12 +306,13 @@ export function BindAction() {
  * @param {any} key
  * @param {any} selectorFunc
  */
-function bindData<S>(target: any, key: string, selector: StateSelector<any, S>) {
-    target.__dataBindings__.subscriptions.push(
-        Reflux.stateStream
-            .select(selector)
-            .subscribe(data => target[key] = data)
-    );
+function bindData<S>(target: any, key: string, selector: StateSelector<any, S>): Subscription {
+    return Reflux.stateStream
+        .select(selector)
+        .subscribe(data => {
+            if (typeof target[key] === 'function') return target[key](data);
+            target[key] = data;
+        });
 }
 
 /**
@@ -316,31 +329,42 @@ function bindData<S>(target: any, key: string, selector: StateSelector<any, S>) 
 export function BindData<S>(selector: StateSelector<any, S>) {
     return function (target: any, propertyKey: string) {
 
-        if (target.__dataBindings__ == undefined) {
-            target.__dataBindings__ = { selectors: {}, subscriptions: [], destroyed: false };
+        let bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target);
+        if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
+            bindingsMeta = { selectors: {}, subscriptions: [], destroyed: false };
 
             let originalInit = target.ngOnInit;
             target.ngOnInit = function ngOnInit() {
-                if (this.__dataBindings__.destroyed !== true) return;
-                Object.keys(this.__dataBindings__.selectors)
-                    .forEach(key => bindData(this, key, this.__dataBindings__.selectors[key]));
-                this.__dataBindings__.destroyed = false;
+                let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined && dataBindings.destroyed === true) {
+
+                    dataBindings.subscriptions = dataBindings.subscriptions.concat(
+                        Object.keys(dataBindings.selectors)
+                            .map(key => bindData(this, key, dataBindings.selectors[key]))
+                    );
+
+                    dataBindings.destroyed = false;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalInit && originalInit();
             };
 
             let originalDestroy = target.ngOnDestroy;
             target.ngOnDestroy = function ngOnDestroy() {
-                this.__dataBindings__.subscriptions.forEach(subscription => subscription.unsubscribe());
-                this.__dataBindings__.subscriptions = [];
-                this.__dataBindings__.destroyed = true;
+                let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined) {
+                    dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe());
+                    dataBindings.subscriptions = [];
+                    dataBindings.destroyed = true;
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                }
                 return originalDestroy && originalDestroy();
             };
         }
 
-        target.__dataBindings__.selectors[propertyKey] = selector;
-        bindData(target, propertyKey, selector);
-
-
+        bindingsMeta.selectors[propertyKey] = selector;
+        bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+        Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, bindingsMeta, target);
     };
 }
 
@@ -351,11 +375,9 @@ export function BindData<S>(selector: StateSelector<any, S>) {
  * @class Store
  */
 export class Store {
-
-    protected __actions__: any;
-
     constructor() {
-        if (this.__actions__ == undefined) return;
-        Object.keys(this.__actions__).forEach(name => new this.__actions__[name]().subscribe(this[name], this));
+        if (!Reflect.hasMetadata(REFLUX_ACTION_KEY, this)) return;
+        let refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, this);
+        Object.keys(refluxActions).forEach(name => new refluxActions[name]().subscribe(this[name], this));
     }
 }
