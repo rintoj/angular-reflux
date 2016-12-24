@@ -202,10 +202,10 @@ export class AppComponent {
 
 ## Sample Code
 
-Sample code is right [here](https://github.com/rintoj/angular2-reflux-starter). You can clone my repo to get started with angular2 project integrated with this module.
+Sample code is right [here](https://github.com/rintoj/angular-reflux-starter). You can clone my repo to get started with angular2 project integrated with this module.
 
 ```sh
-git clone https://github.com/rintoj/angular2-reflux-starter
+git clone https://github.com/rintoj/angular-reflux-starter
 ```
 
 
