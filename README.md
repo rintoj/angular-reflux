@@ -1,17 +1,218 @@
 
 # angular-reflux
-
-A uni-directional (flux-like) data flow architecture using immutability and observables. Inspired by [https://github.com/reflux/refluxjs](https://github.com/reflux/refluxjs)
+This module will help you implement a unidirectional data flow (Flux architecture) for an Angular 2 (or above) application in an elegant way. This is inspired by [refluxjs](https://github.com/reflux/refluxjs) and [redux](http://redux.js.org/).
 
 ## About
 
-## Usage
+Flux is an architecture for unidirectional data flow. By forcing the data to flow in a single direction, Flux makes it easy to reason *how data-changes will affect the application* depending on what actions have been issued. The components themselves may only update  application-wide data by executing an action to avoid double maintenance nightmares.
+
+Inspired by redux and refluxjs, I wrote this library to help you implement a unidirectional data flow in 5 simple steps.
+
+## Install
 
 ```
+npm install angular-reflux
 ```
+
+## 5 Simple Steps
+
+### 1. Define State
+To get the best out of TypeScript, declare an interface that defines the structure of the application-state.
+
+```ts
+export interface Todo {
+    id?: string;
+    title?: string;
+    completed?: boolean;
+}
+
+export interface State {
+    todos?: Todo[];
+    selectedTodo?: Todo;
+}
+```
+
+### 2. Define Action
+Define actions as classes with the necessary arguments passed on to the constructor. This way we will benefit from the type checking; never again we will miss-spell an action, miss a required parameter or pass a wrong parameter. Remember to extend the action from `Action` class. This makes your action listenable and dispatch-able.
+
+```ts
+import { Action } from 'angular-reflux';
+
+export class AddTodoAction extends Action {
+    constructor(public todo: Todo) { super(); }
+}
+```
+
+### 3. Create Store & Bind Action
+Use `@BindAction` decorator to bind a reducer function with an Action. The second parameter to the reducer function (`addTodo`) is an action (of type `AddTodoAction`); `@BindAction` uses this information to bind the correct action. Also remember to extend this class from `Store`.
+
+```ts
+import { Injectable } from '@angular/core';
+import { BindAction, Store } from 'angular-reflux';
+import { Observable } from 'rxjs/Observable';
+import { Observer } from 'rxjs/Observer';
+
+@Injectable()
+export class TodoStore extends Store {
+
+    @BindAction()
+    addTodo(state: State, action: AddTodoAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+            observer.next({ todos: state.todos.concat([action.todo]) });
+            observer.complete();
+        });
+    }
+}
+```
+
+Did you notice `@Injectable()`? Well, stores are injectable modules and uses Angular's dependency injection to instantiate. So take care of adding store to `providers` and to inject into `app.component`. Read [Organizing Stores](#organizing-stores) to understand more.
+
+### 4. Dispatch Action
+
+No singleton dispatcher! Instead this module lets every action act as dispatcher by itself. One less dependency to define, inject and maintain.
+
+```ts
+new AddTodoAction({ id: 'sd2wde', title: 'Sample task' }).dispatch();
+```
+
+### 5. Consume Data
+
+Use `@BindData` decorator and a selector function (parameter to the decorator) to get updates from application state. The property gets updated only when the value, returned by the selector function, changes from previous state to the current state. Additionally, just like a map function, you could map the data to another value as you choose.
+
+We may, at times need to derive additional properties from the data, sometimes using complex calculations. Therefore `@BindData` can be used with functions as well.
+
+
+```ts
+import { BindData } from 'angular-reflux';
+
+@Component({
+    ....
+})
+export class TodoListComponent {
+
+    // mapping a direct value from state
+    @BindData((state: State) => state.todos)
+    protected todos: Todo[];
+
+    // mapping a different value from state
+    @BindData((state: State) => state.todos && state.todos.length > 0)
+    protected hasTodos: boolean;
+
+    // works with functions to allow complex calculations
+    @BindData((state: State) => state.todos)
+    protected todosDidChange(todos: Todo[]) {
+        // your calculations
+    }
+
+}
+```
+
+## Immutable Application State
+To take advantage of Angular 2’s change detection strategy — OnPush — we need to ensure that the state is indeed immutable. This module uses [seamless-immutable](https://github.com/rtfeldman/seamless-immutable) for immutability.
+
+Since application state is immutable, the reducer functions will not be able to update  state; any attempt to update the state will result in error. Therefore a reducer function should either return a portion of the state that needs change (recommended) or a new application state wrapped in `ReplaceableState`, instead.
+
+```ts
+export class TodoStore extends Store {
+
+    @BindAction()
+    selectTodo(state: State, action: SelectTodoAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+
+            // returns only the changes
+            observer.next({
+                selectedTodo: action.todo
+            });
+            observer.complete();
+        });
+    }
+
+    @BindAction()
+    resetTodos(state: State, action: ResetTodosAction): Observable<State> {
+        return Observable.create((observer: Observer<State>) => {
+
+            // returns the entire state (use with CAUTION)
+            observer.next(new ReplaceableState({
+                todos: [],
+                selectedTodo: undefined
+            }));
+            observer.complete();
+        });
+    }
+}
+
+```
+
+## Organizing Stores
+
+1. Store must be injectable. So add `@Injectable`.
+
+2. Create `STORES` array and a class `Stores` (again injectable) to maintain stores. When you create a new store remember to:
+
+    a. Inject to the `Stores`'s constructor.
+
+    b. Add the store to the `STORES` array
+
+```ts
+import { Injectable } from '@angular/core';
+import { TodoStore } from './todo.store';
+
+@Injectable()
+export class Stores {
+    constructor(
+        private todoStore: TodoStore
+    ) { }
+}
+
+export const STORES = [
+    Stores,
+    TodoStore
+];
+```
+
+3. (*One time task*) `STORES` must be added to the `providers` in `app.module.ts`.
+```ts
+import { STORES } from './store/todo.store';
+....
+
+@NgModule({
+    ....
+    providers: [
+        ...STORES,
+        ...
+    ],
+    bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+```
+
+4. (*One time task*) And finally, inject `Stores` into your root component (`app.component.ts`)
+```
+@Component({
+    ....
+})
+export class AppComponent {
+
+    constructor(private stores: STORES) { }
+
+    ....
+}
+```
+
+## Sample Code
+
+Sample code is right [here](https://github.com/rintoj/angular2-reflux-starter). You can clone my repo to get started with angular2 project integrated with this module.
+
+```sh
+git clone https://github.com/rintoj/angular2-reflux-starter
+```
+
+
+### Hope this module is helpful to you. Please make sure to checkout my other [projects](https://github.com/rintoj) and [articles](https://medium.com/@rintoj). Enjoy coding!
 
 ## Contributing
-Contributions are very welcome! Just send a pull request. Feel free to contact me or checkout my [GitHub](https://github.com/rintoj) page.
+Contributions are very welcome! Just send a pull request. Feel free to contact [me](mailto:rintoj@gmail.com) or checkout my [GitHub](https://github.com/rintoj) page.
 
 ## Author
 
@@ -25,7 +226,7 @@ Follow me:
 | [Youtube](https://youtube.com/+RintoJoseMankudy)
 
 ## Versions
-[Check CHANGELOG](https://github.com/rintoj/angular2-virtual-scroll/blob/master/CHANGELOG.md)
+[Check CHANGELOG](https://github.com/rintoj/angular-reflux/blob/master/CHANGELOG.md)
 
 ## License
 ```

@@ -1,6 +1,6 @@
 {
     "name": "angular-reflux",
-    "version": "1.0.0",
+    "version": "0.0.2",
     "description": "A uni-directional (flux-like) data flow architecture using immutability and observables.",
     "main": "dist/reflux.js",
     "types": "dist/reflux.d.ts",
@@ -19,13 +19,13 @@
         "url": "git+https://github.com/rintoj/angular-reflux.git"
     },
     "keywords": [
+        "angular 2",
+        "angular",
         "flux",
         "reflux",
         "immutable",
         "observable",
-        "rxjs",
-        "angular 2",
-        "angular"
+        "redux"
     ],
     "author": "Rinto Jose",
     "license": "MIT",
