@@ -145,13 +145,7 @@ export class TodoStore extends Store {
 
 ## Organizing Stores
 
-1. Store must be injectable. So add `@Injectable`.
-
-2. Create `STORES` array and a class `Stores` (again injectable) to maintain stores. When you create a new store remember to:
-
-    a. Inject to the `Stores`'s constructor.
-
-    b. Add the store to the `STORES` array
+Store must be injectable, so add `@Injectable`. Create `STORES` array and a class `Stores` (again injectable) to maintain stores. When you create a new store remember to, inject to the `Stores`'s constructor and add it to the `STORES` array.
 
 ```ts
 import { Injectable } from '@angular/core';
@@ -170,7 +164,8 @@ export const STORES = [
 ];
 ```
 
-3. (*One time task*) `STORES` must be added to the `providers` in `app.module.ts`.
+Add `STORES` to the `providers` in `app.module.ts`.
+
 ```ts
 import { STORES } from './store/todo.store';
 ....
@@ -187,7 +182,8 @@ export class AppModule { }
 
 ```
 
-4. (*One time task*) And finally, inject `Stores` into your root component (`app.component.ts`)
+And finally, inject `Stores` into your root component (`app.component.ts`)
+
 ```
 @Component({
     ....

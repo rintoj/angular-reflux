@@ -125,6 +125,7 @@ namespace Reflux {
     export let state = Immutable.from<any>({});
     export const stateStream = new StateStream(Reflux.state);
     export const subscriptions: any[] = [];
+    export const actionIdentities: any[] = [];
 }
 
 /**
@@ -174,7 +175,12 @@ export class Action<S> {
      * @type {string}
      */
     get identity(): string {
-        return this.constructor && this.constructor.toString();
+        let id = Reflux.actionIdentities.indexOf(this.constructor);
+        if (id < 0) {
+            Reflux.actionIdentities.push(this.constructor);
+            id = Reflux.actionIdentities.indexOf(this.constructor);
+        }
+        return `c${id}`;
     }
 
     /**

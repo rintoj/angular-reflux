@@ -107,6 +107,7 @@ var Reflux;
     Reflux.state = Immutable.from({});
     Reflux.stateStream = new StateStream(Reflux.state);
     Reflux.subscriptions = [];
+    Reflux.actionIdentities = [];
 })(Reflux || (Reflux = {}));
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
@@ -160,7 +161,12 @@ var Action = (function () {
          * @type {string}
          */
         get: function () {
-            return this.constructor && this.constructor.toString();
+            var id = Reflux.actionIdentities.indexOf(this.constructor);
+            if (id < 0) {
+                Reflux.actionIdentities.push(this.constructor);
+                id = Reflux.actionIdentities.indexOf(this.constructor);
+            }
+            return "c" + id;
         },
         enumerable: true,
         configurable: true
