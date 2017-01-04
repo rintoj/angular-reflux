@@ -1,6 +1,6 @@
 {
   "name": "angular-reflux",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A uni-directional (flux-like) data flow architecture using immutability and observables.",
   "main": "dist/reflux.js",
   "types": "dist/reflux.d.ts",
