@@ -160,7 +160,7 @@ export declare function BindAction(): (target: any, propertyKey: string, descrip
  * @param {*} selector
  * @returns
  */
-export declare function BindData<S>(selector: StateSelector<any, S>): (target: any, propertyKey: string) => void;
+export declare function BindData<S>(selector: StateSelector<any, S>, bindImmediate?: boolean): (target: any, propertyKey: string) => void;
 /**
  * Extend this class to create a store
  *

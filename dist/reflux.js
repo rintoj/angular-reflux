@@ -290,7 +290,7 @@ function bindData(target, key, selector) {
         .select(selector)
         .subscribe(function (data) {
         if (typeof target[key] === 'function')
-            return target[key](data);
+            return target[key].call(target, data);
         target[key] = data;
     });
 }
@@ -305,11 +305,11 @@ function bindData(target, key, selector) {
  * @param {*} selector
  * @returns
  */
-function BindData(selector) {
+function BindData(selector, bindImmediate) {
     return function (target, propertyKey) {
         var bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target);
         if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
-            bindingsMeta = { selectors: {}, subscriptions: [], destroyed: false };
+            bindingsMeta = { selectors: {}, subscriptions: [], destroyed: !bindImmediate };
             var originalInit_1 = target.ngOnInit;
             target.ngOnInit = function ngOnInit() {
                 var _this = this;
@@ -318,7 +318,7 @@ function BindData(selector) {
                     dataBindings.subscriptions = dataBindings.subscriptions.concat(Object.keys(dataBindings.selectors)
                         .map(function (key) { return bindData(_this, key, dataBindings.selectors[key]); }));
                     dataBindings.destroyed = false;
-                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
                 }
                 return originalInit_1 && originalInit_1();
             };
@@ -329,13 +329,15 @@ function BindData(selector) {
                     dataBindings.subscriptions.forEach(function (subscription) { return subscription.unsubscribe(); });
                     dataBindings.subscriptions = [];
                     dataBindings.destroyed = true;
-                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, target);
+                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
                 }
                 return originalDestroy_1 && originalDestroy_1();
             };
         }
         bindingsMeta.selectors[propertyKey] = selector;
-        bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+        if (bindImmediate) {
+            bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+        }
         Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, bindingsMeta, target);
     };
 }
