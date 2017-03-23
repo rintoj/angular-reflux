@@ -1,3 +1,7 @@
+# v0.2.1
+
+* Bug fix: Context was missing when `ngOnInit` and `ngOnDestroy` functions were called by reflux
+
 # v0.2.0
 
 * Bug fix: Added `bindImmediate` flag to `BindData` decorator to enable it to be used with non-components.
