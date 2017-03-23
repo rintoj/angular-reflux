@@ -20,7 +20,7 @@ const REFLUX_DATA_BINDINGS_KEY = Symbol('reflux:dataBindings');
  * @interface ActionObserver
  */
 export interface ActionObserver<S> {
-    (state: S, action: Action<S>): Observable<S>;
+  (state: S, action: Action<S>): Observable<S>;
 }
 
 /**
@@ -30,7 +30,7 @@ export interface ActionObserver<S> {
  * @interface ErrorObserver
  */
 export interface ErrorObserver {
-    (error: any): void;
+  (error: any): void;
 }
 
 /**
@@ -41,7 +41,7 @@ export interface ErrorObserver {
  * @template T
  */
 export interface StateSelector<T, S> {
-    (state: S): T;
+  (state: S): T;
 }
 
 /**
@@ -51,7 +51,7 @@ export interface StateSelector<T, S> {
  * @class ReplaceableState
  */
 export class ReplaceableState<S> {
-    constructor(public state: S) { }
+  constructor(public state: S) { }
 }
 
 /**
@@ -78,54 +78,54 @@ export class ReplaceableState<S> {
 @Injectable()
 export class StateStream<S> extends BehaviorSubject<S> {
 
-    /**
-     * Fires 'next' only when the value returned by this function changed from the previous value.
-     *
-     * @template T
-     * @param {StateSelector<T>} selector
-     * @returns {Observable<T>}
-     */
-    select<T>(selector: StateSelector<T, S>): Observable<T> {
+  /**
+   * Fires 'next' only when the value returned by this function changed from the previous value.
+   *
+   * @template T
+   * @param {StateSelector<T>} selector
+   * @returns {Observable<T>}
+   */
+  select<T>(selector: StateSelector<T, S>): Observable<T> {
 
-        return Observable.create(subscriber => {
-            let previousState: S;
-            let subscription = this.subscribe(
-                (state: S) => {
-                    let selection = select(state, selector);
-                    if (selection !== select(previousState, selector)) {
-                        previousState = state;
-                        subscriber.next(selection);
-                    }
-                },
-                error => subscriber.error(error),
-                () => subscriber.complete()
-            );
+    return Observable.create(subscriber => {
+      let previousState: S;
+      let subscription = this.subscribe(
+        (state: S) => {
+          let selection = select(state, selector);
+          if (selection !== select(previousState, selector)) {
+            previousState = state;
+            subscriber.next(selection);
+          }
+        },
+        error => subscriber.error(error),
+        () => subscriber.complete()
+      );
 
-            return subscription;
-        }).share();
-    }
+      return subscription;
+    }).share();
+  }
 }
 
 function select(state: any, selector: StateSelector<any, any>) {
-    if (state == undefined) return;
-    if (selector == undefined) return state;
-    try {
-        return selector(state);
-    } catch (error) {
-        return undefined;
-    }
+  if (state == undefined) return;
+  if (selector == undefined) return state;
+  try {
+    return selector(state);
+  } catch (error) {
+    return undefined;
+  }
 }
 
 /**
  * Namespace for global variables
  */
 namespace Reflux {
-    'use strict';
-    export let lastAction: Action<any>;
-    export let state = Immutable.from<any>({});
-    export const stateStream = new StateStream(Reflux.state);
-    export const subscriptions: any[] = [];
-    export const actionIdentities: any[] = [];
+  'use strict';
+  export let lastAction: Action<any>;
+  export let state = Immutable.from<any>({});
+  export const stateStream = new StateStream(Reflux.state);
+  export const subscriptions: any[] = [];
+  export const actionIdentities: any[] = [];
 }
 
 /**
@@ -156,113 +156,113 @@ namespace Reflux {
  */
 export class Action<S> {
 
-    /**
-     * The last action occurred
-     *
-     * @readonly
-     * @static
-     *
-     * @memberOf Action
-     */
-    public static get lastAction() {
-        return Reflux.lastAction;
-    }
+  /**
+   * The last action occurred
+   *
+   * @readonly
+   * @static
+   *
+   * @memberOf Action
+   */
+  public static get lastAction() {
+    return Reflux.lastAction;
+  }
 
-    /**
-     * Returns identity of this class
-     *
-     * @readonly
-     * @type {string}
-     */
-    get identity(): string {
-        let id = Reflux.actionIdentities.indexOf(this.constructor);
-        if (id < 0) {
-            Reflux.actionIdentities.push(this.constructor);
-            id = Reflux.actionIdentities.indexOf(this.constructor);
+  /**
+   * Returns identity of this class
+   *
+   * @readonly
+   * @type {string}
+   */
+  get identity(): string {
+    let id = Reflux.actionIdentities.indexOf(this.constructor);
+    if (id < 0) {
+      Reflux.actionIdentities.push(this.constructor);
+      id = Reflux.actionIdentities.indexOf(this.constructor);
+    }
+    return `c${id}`;
+  }
+
+  /**
+   * Subscribe to this action. actionObserver will be called when 'dispatch()' is invoked
+   *
+   * @param {ActionObserver} actionObserver The function that process the action
+   * @param {*} context Context binding
+   * @returns {Action}
+   */
+  public subscribe(actionObserver: ActionObserver<S>, context: any): Action<S> {
+    if (!Reflux.subscriptions[this.identity]) {
+      Reflux.subscriptions[this.identity] = [];
+    }
+    Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
+    return this;
+  }
+
+  /**
+   * Dispatch this action. Returns an observable which will be completed when all action subscribers
+   * complete it's processing
+   *
+   * @returns {Observable<S>}
+   */
+  dispatch(): Promise<S> {
+
+    Reflux.lastAction = this;
+    let subscriptions: ActionObserver<S>[] = Reflux.subscriptions[this.identity];
+    if (subscriptions == undefined || subscriptions.length === 0) {
+      return new Promise(resolve => resolve());
+    };
+
+    let observable: Observable<any> = Observable.from(subscriptions)
+
+      // convert 'Observable' returned by action subscribers to state
+      .flatMap((actionObserver: ActionObserver<S>): Observable<any> => {
+        let value = actionObserver(Reflux.state, this);
+        if (!(value instanceof Observable)) {
+          throw 'Store must return "Observable"';
         }
-        return `c${id}`;
-    }
+        return value;
+      })
 
-    /**
-     * Subscribe to this action. actionObserver will be called when 'dispatch()' is invoked
-     *
-     * @param {ActionObserver} actionObserver The function that process the action
-     * @param {*} context Context binding
-     * @returns {Action}
-     */
-    public subscribe(actionObserver: ActionObserver<S>, context: any): Action<S> {
-        if (!Reflux.subscriptions[this.identity]) {
-            Reflux.subscriptions[this.identity] = [];
+      // merge or replace state
+      .map((state: any) => {
+        if (state instanceof ReplaceableState) {
+          // replace the state with the new one if not 'undefined'
+          let nextState = (state as ReplaceableState<S>).state;
+          if (nextState == undefined) return;
+          Reflux.state = nextState;
+          return nextState;
+
+        } else if (state != undefined) {
+          // merge the state with existing state;
+          Reflux.state = Reflux.state.merge(state, { deep: true });
         }
-        Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
-        return this;
-    }
+        return state;
+      })
 
-    /**
-     * Dispatch this action. Returns an observable which will be completed when all action subscribers
-     * complete it's processing
-     *
-     * @returns {Observable<S>}
-     */
-    dispatch(): Promise<S> {
+      // wait until all the subscripts have completed processing
+      .skipWhile((state: S, i: number) => i + 1 < subscriptions.length)
 
-        Reflux.lastAction = this;
-        let subscriptions: ActionObserver<S>[] = Reflux.subscriptions[this.identity];
-        if (subscriptions == undefined || subscriptions.length === 0) {
-            return new Promise(resolve => resolve());
-        };
+      // push 'next' state to 'stateStream' if there has been a change to the state
+      .map((state: any) => {
+        if (state != undefined) {
+          Reflux.stateStream.next(Reflux.state);
+        }
+        return state;
+      })
 
-        let observable: Observable<any> = Observable.from(subscriptions)
+      // catch any error occurred
+      .catch((error: any): any => Observable.empty())
 
-            // convert 'Observable' returned by action subscribers to state
-            .flatMap((actionObserver: ActionObserver<S>): Observable<any> => {
-                let value = actionObserver(Reflux.state, this);
-                if (!(value instanceof Observable)) {
-                    throw 'Store must return "Observable"';
-                }
-                return value;
-            })
+      // make this sharable (to avoid multiple copies of this observable being created)
+      .share();
 
-            // merge or replace state
-            .map((state: any) => {
-                if (state instanceof ReplaceableState) {
-                    // replace the state with the new one if not 'undefined'
-                    let nextState = (state as ReplaceableState<S>).state;
-                    if (nextState == undefined) return;
-                    Reflux.state = nextState;
-                    return nextState;
-
-                } else if (state != undefined) {
-                    // merge the state with existing state;
-                    Reflux.state = Reflux.state.merge(state, { deep: true });
-                }
-                return state;
-            })
-
-            // wait until all the subscripts have completed processing
-            .skipWhile((state: S, i: number) => i + 1 < subscriptions.length)
-
-            // push 'next' state to 'stateStream' if there has been a change to the state
-            .map((state: any) => {
-                if (state != undefined) {
-                    Reflux.stateStream.next(Reflux.state);
-                }
-                return state;
-            })
-
-            // catch any error occurred
-            .catch((error: any): any => Observable.empty())
-
-            // make this sharable (to avoid multiple copies of this observable being created)
-            .share();
-
-        return new Promise((resolve, reject) => {
-            // to trigger observable
-            observable.subscribe(() => {
-                // empty function
-            }, reject, resolve);
-        });
-    }
+    return new Promise((resolve, reject) => {
+      // to trigger observable
+      observable.subscribe(() => {
+        // empty function
+      }, reject, resolve);
+    });
+  }
 }
 
 /**
@@ -285,24 +285,24 @@ export class Action<S> {
  */
 export function BindAction() {
 
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
 
-        let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
-        if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
+    let metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
+    if (metadata.length < 2) throw new Error('BindAction: function must have two arguments!');
 
-        let refluxActions = {};
-        if (Reflect.hasMetadata(REFLUX_ACTION_KEY, target)) {
-            refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, target);
-        }
-        refluxActions[propertyKey] = metadata[1];
-        Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target);
+    let refluxActions = {};
+    if (Reflect.hasMetadata(REFLUX_ACTION_KEY, target)) {
+      refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, target);
+    }
+    refluxActions[propertyKey] = metadata[1];
+    Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target);
 
-        return {
-            value: function (state: any, action: Action<any>): Observable<any> {
-                return descriptor.value.call(this, state, action);
-            }
-        };
+    return {
+      value: function (state: any, action: Action<any>): Observable<any> {
+        return descriptor.value.call(this, state, action);
+      }
     };
+  };
 }
 
 /**
@@ -313,12 +313,12 @@ export function BindAction() {
  * @param {any} selectorFunc
  */
 function bindData<S>(target: any, key: string, selector: StateSelector<any, S>): Subscription {
-    return Reflux.stateStream
-        .select(selector)
-        .subscribe(data => {
-            if (typeof target[key] === 'function') return target[key].call(target, data);
-            target[key] = data;
-        });
+  return Reflux.stateStream
+    .select(selector)
+    .subscribe(data => {
+      if (typeof target[key] === 'function') return target[key].call(target, data);
+      target[key] = data;
+    });
 }
 
 /**
@@ -333,47 +333,47 @@ function bindData<S>(target: any, key: string, selector: StateSelector<any, S>):
  * @returns
  */
 export function BindData<S>(selector: StateSelector<any, S>, bindImmediate?: boolean) {
-    return function (target: any, propertyKey: string) {
+  return function (target: any, propertyKey: string) {
 
-        let bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target);
-        if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
-            bindingsMeta = { selectors: {}, subscriptions: [], destroyed: !bindImmediate };
+    let bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target);
+    if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
+      bindingsMeta = { selectors: {}, subscriptions: [], destroyed: !bindImmediate };
 
-            let originalInit = target.ngOnInit;
-            target.ngOnInit = function ngOnInit() {
-                let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
-                if (dataBindings != undefined && dataBindings.destroyed === true) {
+      let originalInit = target.ngOnInit;
+      target.ngOnInit = function ngOnInit() {
+        let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+        if (dataBindings != undefined && dataBindings.destroyed === true) {
 
-                    dataBindings.subscriptions = dataBindings.subscriptions.concat(
-                        Object.keys(dataBindings.selectors)
-                            .map(key => bindData(this, key, dataBindings.selectors[key]))
-                    );
+          dataBindings.subscriptions = dataBindings.subscriptions.concat(
+            Object.keys(dataBindings.selectors)
+              .map(key => bindData(this, key, dataBindings.selectors[key]))
+          );
 
-                    dataBindings.destroyed = false;
-                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
-                }
-                return originalInit && originalInit();
-            };
-
-            let originalDestroy = target.ngOnDestroy;
-            target.ngOnDestroy = function ngOnDestroy() {
-                let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
-                if (dataBindings != undefined) {
-                    dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe());
-                    dataBindings.subscriptions = [];
-                    dataBindings.destroyed = true;
-                    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
-                }
-                return originalDestroy && originalDestroy();
-            };
+          dataBindings.destroyed = false;
+          Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
         }
+        return originalInit && originalInit.call(this);
+      };
 
-        bindingsMeta.selectors[propertyKey] = selector;
-        if (bindImmediate) {
-            bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+      let originalDestroy = target.ngOnDestroy;
+      target.ngOnDestroy = function ngOnDestroy() {
+        let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this);
+        if (dataBindings != undefined) {
+          dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe());
+          dataBindings.subscriptions = [];
+          dataBindings.destroyed = true;
+          Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
         }
-        Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, bindingsMeta, target);
-    };
+        return originalDestroy && originalDestroy.call(this);
+      };
+    }
+
+    bindingsMeta.selectors[propertyKey] = selector;
+    if (bindImmediate) {
+      bindingsMeta.subscriptions.push(bindData(target, propertyKey, selector));
+    }
+    Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, bindingsMeta, target);
+  };
 }
 
 /**
@@ -383,9 +383,9 @@ export function BindData<S>(selector: StateSelector<any, S>, bindImmediate?: boo
  * @class Store
  */
 export class Store {
-    constructor() {
-        if (!Reflect.hasMetadata(REFLUX_ACTION_KEY, this)) return;
-        let refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, this);
-        Object.keys(refluxActions).forEach(name => new refluxActions[name]().subscribe(this[name], this));
-    }
+  constructor() {
+    if (!Reflect.hasMetadata(REFLUX_ACTION_KEY, this)) return;
+    let refluxActions = Reflect.getMetadata(REFLUX_ACTION_KEY, this);
+    Object.keys(refluxActions).forEach(name => new refluxActions[name]().subscribe(this[name], this));
+  }
 }
