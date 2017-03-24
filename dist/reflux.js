@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("seamless-immutable");
+var BehaviorSubject_1 = require("rxjs/BehaviorSubject");
 var core_1 = require("@angular/core");
 var Rx_1 = require("rxjs/Rx");
 var REFLUX_ACTION_KEY = Symbol('reflux:actions');
@@ -50,18 +51,14 @@ exports.ReplaceableState = ReplaceableState;
  */
 var StateStream = (function () {
     function StateStream(initialState) {
-        var _this = this;
-        this.observable = Rx_1.Observable.create(function (observer) {
-            _this.observer = observer;
-            _this.observer.next(initialState);
-        }).share();
+        this.subject = new BehaviorSubject_1.BehaviorSubject(initialState);
     }
     /**
      * Publish next state
      * @param state
      */
     StateStream.prototype.next = function (state) {
-        this.observer.next(state);
+        this.subject.next(state);
     };
     /**
      * Subscribe to the stream
@@ -70,7 +67,7 @@ var StateStream = (function () {
      * @param onComplete
      */
     StateStream.prototype.subscribe = function (onNext, onError, onComplete) {
-        return this.observable.subscribe(onNext, onError, onComplete);
+        return this.subject.subscribe(onNext, onError, onComplete);
     };
     /**
      * Fires 'next' only when the value returned by this function changed from the previous value.
@@ -280,7 +277,6 @@ exports.Action = Action;
  * @returns
  */
 function BindAction() {
-    var _this = this;
     return function (target, propertyKey, descriptor) {
         var metadata = Reflect.getMetadata('design:paramtypes', target, propertyKey);
         if (metadata.length < 2)
@@ -293,7 +289,7 @@ function BindAction() {
         Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target);
         return {
             value: function (state, action) {
-                return descriptor.value.call(_this, state, action);
+                return descriptor.value.call(this, state, action);
             }
         };
     };

@@ -83,7 +83,7 @@
     ],
     "no-angle-bracket-type-assertion": true,
     "only-arrow-functions": [
-      true,
+      false,
       "allow-named-functions"
     ],
     "align": [true],

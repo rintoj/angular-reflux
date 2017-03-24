@@ -4,8 +4,10 @@ import { TodoStore } from './todo.store';
 @Injectable()
 export class Stores {
     constructor(
-        private todoStore: TodoStore
-    ) { }
+        todoStore: TodoStore
+    ) {
+        // empty block
+    }
 }
 
 export const STORES = [

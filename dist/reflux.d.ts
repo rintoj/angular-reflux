@@ -61,8 +61,7 @@ export declare class ReplaceableState {
  */
 export declare class StateStream {
     private state;
-    private observable;
-    private observer;
+    private subject;
     constructor(initialState: any);
     /**
      * Publish next state

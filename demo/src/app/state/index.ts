@@ -1,7 +1,6 @@
-import { Todo } from './todo';
+import { Todo, TodoFilter } from './todo';
 
-// define application state
 export interface State {
     todos?: Todo[];
-    showTodo?: boolean;
+    filter?: TodoFilter;
 }

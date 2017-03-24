@@ -1,5 +1,6 @@
 import * as Immutable from 'seamless-immutable'
 
+import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { Injectable } from '@angular/core'
 import { Observable } from 'rxjs/Rx'
 import { Observer } from 'rxjs/Rx'
@@ -79,14 +80,10 @@ export class ReplaceableState {
 export class StateStream {
 
   private state: any
-  private observable: Observable<any>
-  private observer: Observer<any>
+  private subject: BehaviorSubject<any>
 
   constructor(initialState: any) {
-    this.observable = Observable.create(observer => {
-      this.observer = observer
-      this.observer.next(initialState)
-    }).share()
+    this.subject = new BehaviorSubject(initialState)
   }
 
   /**
@@ -94,7 +91,7 @@ export class StateStream {
    * @param state
    */
   next(state) {
-    this.observer.next(state)
+    this.subject.next(state)
   }
 
   /**
@@ -104,7 +101,7 @@ export class StateStream {
    * @param onComplete
    */
   subscribe(onNext, onError, onComplete) {
-    return this.observable.subscribe(onNext, onError, onComplete)
+    return this.subject.subscribe(onNext, onError, onComplete)
   }
 
   /**
@@ -334,7 +331,7 @@ export function BindAction() {
     Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target)
 
     return {
-      value: (state: any, action: Action): Observable<any> => {
+      value: function (state: any, action: Action): Observable<any> {
         return descriptor.value.call(this, state, action)
       }
     }

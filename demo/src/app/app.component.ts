@@ -1,48 +1,36 @@
-import { AddTodoAction, FetchTodosAction, ToggleTodoListAction } from './state/actions';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Todo, TodoFilter } from './state/todo';
 
-import { BindData } from './state/reflux';
+import { BindData } from 'angular-reflux';
+import { FetchTodosAction } from './state/action';
 import { State } from './state';
 import { Stores } from './store';
-import { ViewEncapsulation } from '@angular/core';
 
 @Component({
-    selector: 'app-root',
-    template: `
-        <button  (click)="toggleTodoList()">{{!showTodo ? 'Show' : 'Hide'}} Todo</button>
-        <span *ngIf="showTodo">
-            <form>
-                <input [(ngModel)]="todoText" name="title" placeholder="Enter todo here">
-                <button type="submit" (click)="addTodo()">+ Add</button>
-            </form>
-            <todo-list></todo-list>
-        </span>
+  selector: 'todo-app',
+  template: `
+    <div id="todoapp">
+      <todo-header></todo-header>
+      <todo-list [todos]="todos" [filter]="filter"></todo-list>
+      <todo-footer [todos]="todos" [filter]="filter"></todo-footer>
+    </div>
     `,
-    styleUrls: ['./app.component.scss'],
-    encapsulation: ViewEncapsulation.None
+  styles: [
+    require('./app.component.scss')
+  ],
+  encapsulation: ViewEncapsulation.None
 })
 export class AppComponent implements OnInit {
 
-    @BindData((state: State) => state.showTodo)
-    protected showTodo: boolean = true;
+  @BindData((state: State) => state.todos)
+  protected todos: Todo[];
 
-    protected todoText: string;
+  @BindData((state: State) => state.filter)
+  protected filter: TodoFilter;
 
-    constructor(private stores: Stores) { }
+  constructor(public stores: Stores) { }
 
-    ngOnInit() {
-        new FetchTodosAction().dispatch();
-    }
-
-    addTodo() {
-        if (this.todoText == undefined || this.todoText.trim() === '') return;
-        new AddTodoAction({
-            title: this.todoText.trim(),
-            completed: false
-        }).dispatch();
-    }
-
-    toggleTodoList() {
-        new ToggleTodoListAction().dispatch();
-    }
+  ngOnInit() {
+    new FetchTodosAction().dispatch();
+  }
 }
