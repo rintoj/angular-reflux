@@ -1,4 +1,8 @@
-src/
-node_modules/
+compiled/
 demo/
+node_modules/
+src/
 *.log
+tsconfig.json
+tslint.json
+.gitignore

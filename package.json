@@ -5,8 +5,7 @@
   "main": "dist/reflux.js",
   "types": "dist/reflux.d.ts",
   "scripts": {
-    "build:prod": "npm run ngc --",
-    "build": "npm run tsc --",
+    "build": "npm run ngc --",
     "lint": "tslint src/**/*.ts",
     "prepublish": "npm run build",
     "start": "npm run watch",

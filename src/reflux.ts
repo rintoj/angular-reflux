@@ -1,8 +1,8 @@
 import * as Immutable from 'seamless-immutable'
 
-import { BehaviorSubject } from 'rxjs/Rx'
 import { Injectable } from '@angular/core'
 import { Observable } from 'rxjs/Rx'
+import { Observer } from 'rxjs/Rx'
 import { Subscription } from 'rxjs/Subscription'
 
 /**
@@ -19,8 +19,8 @@ const REFLUX_DATA_BINDINGS_KEY = Symbol('reflux:dataBindings')
  * @export
  * @interface ActionObserver
  */
-export interface ActionObserver<S> {
-  (state: S, action: Action<S>): Observable<S>
+export interface ActionObserver {
+  (state: any, action: Action): Observable<any>
 }
 
 /**
@@ -40,8 +40,8 @@ export interface ErrorObserver {
  * @interface StateSelector
  * @template T
  */
-export interface StateSelector<T, S> {
-  (state: S): T
+export interface StateSelector {
+  (state: any): any
 }
 
 /**
@@ -50,8 +50,8 @@ export interface StateSelector<T, S> {
  * @export
  * @class ReplaceableState
  */
-export class ReplaceableState<S> {
-  constructor(public state: S) { }
+export class ReplaceableState {
+  constructor(public state: any) { }
 }
 
 /**
@@ -61,22 +61,51 @@ export class ReplaceableState<S> {
  *
  * // subscribe to state stream
  * stateStream.subscribe((state: State) => {
- *      // do your action here
+ *   // do your action here
  * })
  *
  * // or listen to a portion of the state
  * stateStream
- *      .select((state: State) => state.application.pageContainer)
- *      .subscribe((state: State) => {
- *          // do your action here
- *      })
+ *   .select((state: State) => state.application.pageContainer)
+ *   .subscribe((state: State) => {
+ *     // do your action here
+ *   })
  *
  * @export
  * @class StateStream
- * @extends {BehaviorSubject<State>}
+ * @extends {BehaviorSubject}
  */
 @Injectable()
-export class StateStream<S> extends BehaviorSubject<S> {
+export class StateStream {
+
+  private state: any
+  private observable: Observable<any>
+  private observer: Observer<any>
+
+  constructor(initialState: any) {
+    this.observable = Observable.create(observer => {
+      this.observer = observer
+      this.observer.next(initialState)
+    }).share()
+  }
+
+  /**
+   * Publish next state
+   * @param state
+   */
+  next(state) {
+    this.observer.next(state)
+  }
+
+  /**
+   * Subscribe to the stream
+   * @param onNext
+   * @param onError
+   * @param onComplete
+   */
+  subscribe(onNext, onError, onComplete) {
+    return this.observable.subscribe(onNext, onError, onComplete)
+  }
 
   /**
    * Fires 'next' only when the value returned by this function changed from the previous value.
@@ -85,12 +114,12 @@ export class StateStream<S> extends BehaviorSubject<S> {
    * @param {StateSelector<T>} selector
    * @returns {Observable<T>}
    */
-  select<T>(selector: StateSelector<T, S>): Observable<T> {
+  select(selector: StateSelector): Observable<any> {
 
     return Observable.create(subscriber => {
-      let previousState: S
+      let previousState: any
       let subscription = this.subscribe(
-        (state: S) => {
+        state => {
           let selection = select(state, selector)
           if (selection !== select(previousState, selector)) {
             previousState = state
@@ -106,7 +135,14 @@ export class StateStream<S> extends BehaviorSubject<S> {
   }
 }
 
-function select(state: any, selector: StateSelector<any, any>) {
+/**
+ * Run selector function on the given state and return it's result. Return undefined if an error occurred
+ *
+ * @param {*} state
+ * @param {StateSelector} selector
+ * @returns The value return by the selector, undefined if an error occurred.
+ */
+function select(state: any, selector: StateSelector) {
   if (state == undefined) return
   if (selector == undefined) return state
   try {
@@ -121,7 +157,7 @@ function select(state: any, selector: StateSelector<any, any>) {
  */
 namespace Reflux {
   'use strict'
-  export let lastAction: Action<any>
+  export let lastAction: Action
   export let state = Immutable.from<any>({})
   export const stateStream = new StateStream(Reflux.state)
   export const subscriptions: any[] = []
@@ -135,17 +171,17 @@ namespace Reflux {
  *
  * // Create your own action class
  * class PageSwitchAction extends Action {
- *      constructor(public pageId: string) {
- *          super()
- *      }
+ *   constructor(public pageId: string) {
+ *     super()
+ *   }
  * }
  *
  * // Subscribe to your action
  * new PageSwitchAction(undefined).subscribe((state: State, action: PageSwitchAction): Observable<State> => {
- *      return Observable.create((observer: Observer<State>) => {
- *          observer.next(updatedState)
- *          observer.complete()
- *      }).share()
+ *   return Observable.create((observer: Observer<State>) => {
+ *     observer.next(updatedState)
+ *       observer.complete()
+ *   }).share()
  * }, this)
  *
  * // Dispatch your action
@@ -154,7 +190,7 @@ namespace Reflux {
  * @export
  * @class Action
  */
-export class Action<S> {
+export class Action {
 
   /**
    * The last action occurred
@@ -190,7 +226,7 @@ export class Action<S> {
    * @param {*} context Context binding
    * @returns {Action}
    */
-  public subscribe(actionObserver: ActionObserver<S>, context: any): Action<S> {
+  public subscribe(actionObserver: ActionObserver, context: any): Action {
     if (!Reflux.subscriptions[this.identity]) {
       Reflux.subscriptions[this.identity] = []
     }
@@ -204,10 +240,10 @@ export class Action<S> {
    *
    * @returns {Observable<S>}
    */
-  dispatch(): Promise<S> {
+  dispatch(): Promise<any> {
 
     Reflux.lastAction = this
-    let subscriptions: ActionObserver<S>[] = Reflux.subscriptions[this.identity]
+    let subscriptions: ActionObserver[] = Reflux.subscriptions[this.identity]
     if (subscriptions == undefined || subscriptions.length === 0) {
       return new Promise(resolve => resolve())
     }
@@ -215,7 +251,7 @@ export class Action<S> {
     let observable: Observable<any> = Observable.from(subscriptions)
 
       // convert 'Observable' returned by action subscribers to state
-      .flatMap((actionObserver: ActionObserver<S>): Observable<any> => {
+      .flatMap((actionObserver: ActionObserver): Observable<any> => {
         let value = actionObserver(Reflux.state, this)
         if (!(value instanceof Observable)) {
           throw 'Store must return "Observable"'
@@ -227,7 +263,7 @@ export class Action<S> {
       .map((state: any) => {
         if (state instanceof ReplaceableState) {
           // replace the state with the new one if not 'undefined'
-          let nextState = (state as ReplaceableState<S>).state
+          let nextState = (state as ReplaceableState).state
           if (nextState == undefined) return
           Reflux.state = nextState
           return nextState
@@ -240,7 +276,7 @@ export class Action<S> {
       })
 
       // wait until all the subscripts have completed processing
-      .skipWhile((state: S, i: number) => i + 1 < subscriptions.length)
+      .skipWhile((state: any, i: number) => i + 1 < subscriptions.length)
 
       // push 'next' state to 'stateStream' if there has been a change to the state
       .map((state: any) => {
@@ -271,12 +307,12 @@ export class Action<S> {
  * @example
  *  @BindAction()
  *  addTodo(state: State, action: AddTodoAction): Observable<State> {
- *      return Observable.create((observer: Observer<State>) => {
- *          observer.next({
- *              todos: state.todos.concat([action.todo])
- *          })
- *          observer.complete()
- *      }).share()
+ *    return Observable.create((observer: Observer<State>) => {
+ *       observer.next({
+ *          todos: state.todos.concat([action.todo])
+ *       })
+ *       observer.complete()
+ *    }).share()
  *  }
  *
  * @export
@@ -298,7 +334,7 @@ export function BindAction() {
     Reflect.defineMetadata(REFLUX_ACTION_KEY, refluxActions, target)
 
     return {
-      value: (state: any, action: Action<any>): Observable<any> => {
+      value: (state: any, action: Action): Observable<any> => {
         return descriptor.value.call(this, state, action)
       }
     }
@@ -312,7 +348,7 @@ export function BindAction() {
  * @param {any} key
  * @param {any} selectorFunc
  */
-function bindData<S>(target: any, key: string, selector: StateSelector<any, S>): Subscription {
+function bindData<S>(target: any, key: string, selector: StateSelector): Subscription {
   return Reflux.stateStream
     .select(selector)
     .subscribe(data => {
@@ -322,17 +358,23 @@ function bindData<S>(target: any, key: string, selector: StateSelector<any, S>):
 }
 
 /**
- * Bind data to a variable
+ * Bind data to a variable or to a function
  *
  * @example
  * @BindData(state => state.todos)
  * todos: Todo[]
  *
+ * @BindDAta(state => state.todos)
+ * todosDidChange(todos: Todo[]) {
+ *   // your logic
+ * }
+ *
+ *
  * @export
  * @param {*} selector
  * @returns
  */
-export function BindData<S>(selector: StateSelector<any, S>, bindImmediate?: boolean) {
+export function BindData<S>(selector: StateSelector, bindImmediate?: boolean) {
   return (target: any, propertyKey: string) => {
 
     let bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target)
