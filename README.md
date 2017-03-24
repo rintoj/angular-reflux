@@ -15,7 +15,7 @@ Inspired by redux and refluxjs, I wrote this library to help you implement a uni
 ## Install
 
 ```
-npm install angular-reflux
+npm install angular-reflux seamless-immutable --save
 ```
 
 ## 5 Simple Steps
