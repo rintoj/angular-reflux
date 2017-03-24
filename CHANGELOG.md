@@ -1,4 +1,43 @@
-# v0.2.1
+# v1.0.0
+
+## Breaking Change: This module is now AOT compatible.
+
+The selectorFunction to `@BindData()` decorator must be an exported standalone function, to avoid the below AOT error:
+
+```bash
+ERROR in Error encountered resolving symbol values statically. Function calls are not supported. Consider replacing the function or lambda with a reference to an exported function
+```
+
+Therefore refactor your code from:
+
+```ts
+@Component({
+  ....
+})
+export class TodoComponent {
+
+  @BindData((state: State) => state.todos)
+  todos: Todo[]
+}
+```
+
+to:
+```ts
+export function selectTodos(state: State) {
+  return state.todos;
+}
+
+@Component({
+  ....
+})
+export class TodoComponent {
+
+  @BindData(selectTodos)
+  todos: Todo[]
+}
+```
+
+## Other fixes
 
 * Bug fix: Context was missing when `ngOnInit` and `ngOnDestroy` functions were called by reflux
 

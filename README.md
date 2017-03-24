@@ -2,6 +2,10 @@
 # angular-reflux
 This module will help you implement a unidirectional data flow (Flux architecture) for an Angular 2 (or above) application in an elegant way. This is inspired by [refluxjs](https://github.com/reflux/refluxjs) and [redux](http://redux.js.org/).
 
+## Update (24 Mar 2017)
+
+Since version `1.0.0`, this module is compatible with Angular's Ahead-of-Time Compilation (AOT). I have updated all examples to reflect this change. If you are here for the first time, never mind, continue reading. But if you have had used this module before and you want to refactor your code to make it AOT compatible check [Making Your Code AOT Compatible](#making-your-code-aot-compatible) section.
+
 ## About
 
 Flux is an architecture for unidirectional data flow. By forcing the data to flow in a single direction, Flux makes it easy to reason *how data-changes will affect the application* depending on what actions have been issued. The components themselves may only update  application-wide data by executing an action to avoid double maintenance nightmares.
@@ -21,14 +25,14 @@ To get the best out of TypeScript, declare an interface that defines the structu
 
 ```ts
 export interface Todo {
-    id?: string;
-    title?: string;
-    completed?: boolean;
+  id?: string;
+  title?: string;
+  completed?: boolean;
 }
 
 export interface State {
-    todos?: Todo[];
-    selectedTodo?: Todo;
+  todos?: Todo[];
+  selectedTodo?: Todo;
 }
 ```
 
@@ -39,7 +43,7 @@ Define actions as classes with the necessary arguments passed on to the construc
 import { Action } from 'angular-reflux';
 
 export class AddTodoAction extends Action {
-    constructor(public todo: Todo) { super(); }
+  constructor(public todo: Todo) { super(); }
 }
 ```
 
@@ -55,13 +59,13 @@ import { Observer } from 'rxjs/Observer';
 @Injectable()
 export class TodoStore extends Store {
 
-    @BindAction()
-    addTodo(state: State, action: AddTodoAction): Observable<State> {
-        return Observable.create((observer: Observer<State>) => {
-            observer.next({ todos: state.todos.concat([action.todo]) });
-            observer.complete();
-        });
-    }
+  @BindAction()
+  addTodo(state: State, action: AddTodoAction): Observable<State> {
+    return Observable.create((observer: Observer<State>) => {
+      observer.next({ todos: state.todos.concat([action.todo]) });
+      observer.complete();
+    });
+  }
 }
 ```
 
@@ -81,29 +85,73 @@ Use `@BindData` decorator and a selector function (parameter to the decorator) t
 
 We may, at times need to derive additional properties from the data, sometimes using complex calculations. Therefore `@BindData` can be used with functions as well.
 
-
 ```ts
 import { BindData } from 'angular-reflux';
+
+export function selectTodos(state: State) {
+  return state.todos;
+}
+
+export function computeHasTodos(state: State) {
+  return state.todos && state.todos.length > 0;
+}
 
 @Component({
     ....
 })
 export class TodoListComponent {
 
-    // mapping a direct value from state
-    @BindData((state: State) => state.todos)
-    protected todos: Todo[];
+  // mapping a direct value from state
+  @BindData(selectTodos)
+  protected todos: Todo[];
 
-    // mapping a different value from state
-    @BindData((state: State) => state.todos && state.todos.length > 0)
-    protected hasTodos: boolean;
+  // mapping a different value from state
+  @BindData(computeHasTodos)
+  protected hasTodos: boolean;
 
-    // works with functions to allow complex calculations
-    @BindData((state: State) => state.todos)
-    protected todosDidChange(todos: Todo[]) {
-        // your calculations
-    }
+  // works with functions to allow complex calculations
+  @BindData(selectTodos)
+  protected todosDidChange(todos: Todo[]) {
+    // your calculations
+  }
+}
+```
 
+## Making Your Code AOT Compatible
+
+The selector function to `@BindData()` decorator must be an exported standalone function, to avoid the below AOT error:
+
+```bash
+ERROR in Error encountered resolving symbol values statically. Function calls are not supported. Consider replacing the function or lambda with a reference to an exported function
+```
+
+Therefore refactor your code from:
+
+```ts
+@Component({
+  ....
+})
+export class TodoComponent {
+
+  @BindData((state: State) => state.todos)
+  todos: Todo[]
+}
+```
+
+to:
+
+```ts
+export function selectTodos(state: State) {
+  return state.todos;
+}
+
+@Component({
+  ....
+})
+export class TodoComponent {
+
+  @BindData(selectTodos)
+  todos: Todo[]
 }
 ```
 
@@ -115,30 +163,32 @@ Since application state is immutable, the reducer functions will not be able to 
 ```ts
 export class TodoStore extends Store {
 
-    @BindAction()
-    selectTodo(state: State, action: SelectTodoAction): Observable<State> {
-        return Observable.create((observer: Observer<State>) => {
+  @BindAction()
+  selectTodo(state: State, action: SelectTodoAction): Observable<State> {
+    return Observable.create((observer: Observer<State>) => {
 
-            // returns only the changes
-            observer.next({
-                selectedTodo: action.todo
-            });
-            observer.complete();
-        });
-    }
+      // returns only the changes
+      observer.next({
+          selectedTodo: action.todo
+      });
 
-    @BindAction()
-    resetTodos(state: State, action: ResetTodosAction): Observable<State> {
-        return Observable.create((observer: Observer<State>) => {
+      observer.complete();
+    });
+  }
 
-            // returns the entire state (use with CAUTION)
-            observer.next(new ReplaceableState({
-                todos: [],
-                selectedTodo: undefined
-            }));
-            observer.complete();
-        });
-    }
+  @BindAction()
+  resetTodos(state: State, action: ResetTodosAction): Observable<State> {
+    return Observable.create((observer: Observer<State>) => {
+
+      // returns the entire state (use with CAUTION)
+      observer.next(new ReplaceableState({
+        todos: [],
+        selectedTodo: undefined
+      }));
+
+      observer.complete();
+    });
+  }
 }
 
 ```
@@ -153,14 +203,12 @@ import { TodoStore } from './todo.store';
 
 @Injectable()
 export class Stores {
-    constructor(
-        private todoStore: TodoStore
-    ) { }
+  constructor( private todoStore: TodoStore) { }
 }
 
 export const STORES = [
-    Stores,
-    TodoStore
+  Stores,
+  TodoStore
 ];
 ```
 
@@ -171,12 +219,12 @@ import { STORES } from './store/todo.store';
 ....
 
 @NgModule({
-    ....
-    providers: [
-        ...STORES,
-        ...
-    ],
-    bootstrap: [AppComponent]
+  ....
+  providers: [
+    ...STORES,
+    ...
+  ],
+  bootstrap: [AppComponent]
 })
 export class AppModule { }
 
@@ -184,15 +232,15 @@ export class AppModule { }
 
 And finally, inject `Stores` into your root component (`app.component.ts`)
 
-```
+```ts
 @Component({
-    ....
+  ....
 })
 export class AppComponent {
 
-    constructor(private stores: STORES) { }
+  constructor(private stores: STORES) { }
 
-    ....
+  ....
 }
 ```
 
@@ -203,7 +251,6 @@ Sample code is right [here](https://github.com/rintoj/angular-reflux-starter). Y
 ```sh
 git clone https://github.com/rintoj/angular-reflux-starter
 ```
-
 
 ### Hope this module is helpful to you. Please make sure to checkout my other [projects](https://github.com/rintoj) and [articles](https://medium.com/@rintoj). Enjoy coding!
 
