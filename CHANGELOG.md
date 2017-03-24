@@ -1,3 +1,7 @@
+# v1.1.0
+
+* Add `DataObserver` class to prevent angular compiler from removing `ngOnInit` and `ngOnDestroy` functions
+
 # v1.0.0
 
 ## Breaking Change: This module is now AOT compatible.

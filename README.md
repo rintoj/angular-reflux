@@ -86,7 +86,7 @@ Use `@BindData` decorator and a selector function (parameter to the decorator) t
 We may, at times need to derive additional properties from the data, sometimes using complex calculations. Therefore `@BindData` can be used with functions as well.
 
 ```ts
-import { BindData } from 'angular-reflux';
+import { BindData, DataObserver } from 'angular-reflux';
 
 export function selectTodos(state: State) {
   return state.todos;
@@ -99,7 +99,7 @@ export function computeHasTodos(state: State) {
 @Component({
     ....
 })
-export class TodoListComponent {
+export class TodoListComponent extends DataObserver {
 
   // mapping a direct value from state
   @BindData(selectTodos)
@@ -148,12 +148,14 @@ export function selectTodos(state: State) {
 @Component({
   ....
 })
-export class TodoComponent {
+export class TodoComponent extends DataObserver {
 
   @BindData(selectTodos)
   todos: Todo[]
 }
 ```
+
+Remember to extend your class from `DataObserver`. It is essential to instruct Angular Compiler to keep `ngOnInit` and `ngOnDestroy` life cycle events, which can only be achieved by implementing `OnInit` and `OnDestroy` interfaces. Because of this constraint all components using `@BindData` must extend itself from `DataObserver` which sets `ngOnInit` and `ngOnDestroy` properly; `@BindData` inturn depends on these functions. However if you would like to extend your class from your-own base class you may do so after making sure `ngOnInit` and `ngOnDestroy` are implemented properly.
 
 ## Immutable Application State
 To take advantage of Angular 2’s change detection strategy — OnPush — we need to ensure that the state is indeed immutable. This module uses [seamless-immutable](https://github.com/rtfeldman/seamless-immutable) for immutability.
