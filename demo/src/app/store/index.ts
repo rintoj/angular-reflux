@@ -3,14 +3,14 @@ import { TodoStore } from './todo.store';
 
 @Injectable()
 export class Stores {
-    constructor(
-        todoStore: TodoStore
-    ) {
-        // empty block
-    }
+  constructor(
+    todoStore: TodoStore
+  ) {
+    // empty block
+  }
 }
 
 export const STORES = [
-    Stores,
-    TodoStore
+  Stores,
+  TodoStore
 ];

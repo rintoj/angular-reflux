@@ -10,7 +10,7 @@
       "check-space"
     ],
     "curly": true,
-    "eofline": true,
+    "eofline": false,
     "forin": true,
     "import-blacklist": [true, "rxjs"],
     "import-spacing": true,
@@ -74,7 +74,7 @@
     ],
     "triple-equals": [
       true,
-      "allow-null-check"
+      "allow-undefined-check"
     ],
     "typedef-whitespace": [
       true,

@@ -6,6 +6,14 @@ import { FetchTodosAction } from './state/action';
 import { State } from './state';
 import { Stores } from './store';
 
+export function selectTodos(state: State) {
+  return state.todos;
+}
+
+export function selectFilter(state: State) {
+  return state.filter;
+}
+
 @Component({
   selector: 'todo-app',
   template: `
@@ -15,18 +23,16 @@ import { Stores } from './store';
       <todo-footer [todos]="todos" [filter]="filter"></todo-footer>
     </div>
     `,
-  styles: [
-    require('./app.component.scss')
-  ],
+  styleUrls: ['./app.component.css'],
   encapsulation: ViewEncapsulation.None
 })
 export class AppComponent implements OnInit {
 
-  @BindData((state: State) => state.todos)
-  protected todos: Todo[];
+  @BindData(selectTodos)
+  todos: Todo[];
 
-  @BindData((state: State) => state.filter)
-  protected filter: TodoFilter;
+  @BindData(selectFilter)
+  filter: TodoFilter;
 
   constructor(public stores: Stores) { }
 
