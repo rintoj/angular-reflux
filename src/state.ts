@@ -1,3 +1,5 @@
+import * as Immutable from 'seamless-immutable'
+
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { Injectable } from '@angular/core'
 import { Observable } from 'rxjs/Observable'
@@ -9,13 +11,16 @@ import { Subscription } from 'rxjs/Subscription'
  *
  * @example
  *
+ * // replace state
+ * State.next(state)
+ *
  * // subscribe to state stream
- * stateStream.subscribe((state: State) => {
+ * State.subscribe((state: State) => {
  *   // do your action here
  * })
  *
  * // or listen to a portion of the state
- * stateStream
+ * State
  *   .select((state: State) => state.application.pageContainer)
  *   .subscribe((state: State) => {
  *     // do your action here
@@ -26,21 +31,23 @@ import { Subscription } from 'rxjs/Subscription'
  * @extends {BehaviorSubject}
  */
 @Injectable()
-export class StateStream {
+export class State {
 
-  private state: any
+  private static state: State = new State()
+
+  private currentState: any
   private subject: BehaviorSubject<any>
 
-  constructor(initialState: any) {
-    this.subject = new BehaviorSubject(initialState)
+  static get current() {
+    return State.state.currentState
   }
 
   /**
    * Publish next state
    * @param state
    */
-  next(state) {
-    this.subject.next(state)
+  static next(state) {
+    State.state.subject.next(state)
   }
 
   /**
@@ -49,8 +56,8 @@ export class StateStream {
    * @param onError
    * @param onComplete
    */
-  subscribe(onNext, onError, onComplete): Subscription {
-    return this.subject.subscribe(onNext, onError, onComplete)
+  static subscribe(onNext, onError, onComplete): Subscription {
+    return State.state.subject.subscribe(onNext, onError, onComplete)
   }
 
   /**
@@ -60,7 +67,7 @@ export class StateStream {
    * @param {StateSelector<T>} selector
    * @returns {Observable<T>}
    */
-  select(selector: StateSelector): Observable<any> {
+  static select(selector: StateSelector): Observable<any> {
 
     return Observable.create(subscriber => {
       let previousState: any
@@ -79,6 +86,12 @@ export class StateStream {
       return subscription
     }).share()
   }
+
+  constructor() {
+    this.currentState = Immutable.from<any>({})
+    this.subject = new BehaviorSubject(this.currentState)
+  }
+
 }
 
 /**

@@ -161,7 +161,7 @@ Remember to extend your class from `DataObserver`. It is essential to instruct A
 
 Reducer functions can return either of the following
 
-1. A portion of the application state as plain object
+* A portion of the application state as plain object
 ```ts
 @BindAction()
 add(state: State, action: AddTodoAction): State {
@@ -171,7 +171,7 @@ add(state: State, action: AddTodoAction): State {
 }
 ```
 
-2. A portion of the application state wrapped in Promise, if it needs to perform an async task.
+* A portion of the application state wrapped in Promise, if it needs to perform an async task.
 ```ts
 @BindAction()
 add(state: State, action: AddTodoAction): Promise<AppStore> {
@@ -185,7 +185,7 @@ add(state: State, action: AddTodoAction): Promise<AppStore> {
 }
 ```
 
-3. A portion of the application state wrapped in Observables, if the application state needs update multiple times over a period of time, all when handling an action. For example, you have to show loader before starting the process, and hide loader after you have done processing, you may use this.
+* A portion of the application state wrapped in Observables, if the application state needs update multiple times over a period of time, all when handling an action. For example, you have to show loader before starting the process, and hide loader after you have done processing, you may use this.
 ```ts
 @BindAction()
 add(state: State, action: AddTodoAction): Observable<State> {
@@ -200,6 +200,26 @@ add(state: State, action: AddTodoAction): Observable<State> {
     })
   })
 }
+```
+
+## Initializing State & Enabling HotLoad
+
+```ts
+...
+import { INITIAL_STATE } from './../state'
+import { environment } from '../environments/environment'
+import { initialize } from 'angular-reflux'
+
+initialize(INITIAL_STATE, {
+  hotLoad: !environment.production,
+  domain: 'my-app'
+})
+
+@NgModule({
+  ....
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
 ```
 
 ## Immutable Application State

@@ -1,3 +1,7 @@
+# v1.1.2
+* refactor internal modules and functions
+* add hot reload
+
 # v1.1.1
 
 * API Change: (non-breaking) Reducer function now return either of Observable, Promise or Application State as an object itself

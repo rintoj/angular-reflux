@@ -7,9 +7,10 @@ require("rxjs/add/operator/map");
 require("rxjs/add/operator/mergeMap");
 require("rxjs/add/operator/share");
 require("rxjs/add/operator/skipWhile");
+var Immutable = require("seamless-immutable");
 var Observable_1 = require("rxjs/Observable");
-var constance_1 = require("./constance");
 var replaceable_state_1 = require("./replaceable-state");
+var state_1 = require("./state");
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
  *
@@ -49,7 +50,7 @@ var Action = (function () {
          * @memberOf Action
          */
         get: function () {
-            return constance_1.Reflux.lastAction;
+            return Action.lastAction;
         },
         enumerable: true,
         configurable: true
@@ -62,10 +63,10 @@ var Action = (function () {
          * @type {string}
          */
         get: function () {
-            var id = constance_1.Reflux.actionIdentities.indexOf(this.constructor);
+            var id = Action.identities.indexOf(this.constructor);
             if (id < 0) {
-                constance_1.Reflux.actionIdentities.push(this.constructor);
-                id = constance_1.Reflux.actionIdentities.indexOf(this.constructor);
+                Action.identities.push(this.constructor);
+                id = Action.identities.indexOf(this.constructor);
             }
             return "c" + id;
         },
@@ -80,10 +81,10 @@ var Action = (function () {
      * @returns {Action}
      */
     Action.prototype.subscribe = function (actionObserver, context) {
-        if (!constance_1.Reflux.subscriptions[this.identity]) {
-            constance_1.Reflux.subscriptions[this.identity] = [];
+        if (!Action.subscriptions[this.identity]) {
+            Action.subscriptions[this.identity] = [];
         }
-        constance_1.Reflux.subscriptions[this.identity].push(actionObserver.bind(context));
+        Action.subscriptions[this.identity].push(actionObserver.bind(context));
         return this;
     };
     /**
@@ -94,14 +95,14 @@ var Action = (function () {
      */
     Action.prototype.dispatch = function () {
         var _this = this;
-        constance_1.Reflux.lastAction = this;
-        var subscriptions = constance_1.Reflux.subscriptions[this.identity];
+        Action._lastAction = this;
+        var subscriptions = Action.subscriptions[this.identity];
         if (subscriptions == undefined || subscriptions.length === 0) {
             return new Promise(function (resolve) { return resolve(); });
         }
         var observable = Observable_1.Observable.from(subscriptions)
             .flatMap(function (actionObserver) {
-            var result = actionObserver(constance_1.Reflux.state, _this);
+            var result = actionObserver(state_1.State.current, _this);
             if (!(result instanceof Observable_1.Observable || result instanceof Promise)) {
                 return Observable_1.Observable.create(function (observer) {
                     observer.next(result);
@@ -113,22 +114,17 @@ var Action = (function () {
             .map(function (state) {
             if (state instanceof replaceable_state_1.ReplaceableState) {
                 // replace the state with the new one if not 'undefined'
-                var nextState = state.state;
-                if (nextState == undefined)
-                    return;
-                constance_1.Reflux.state = nextState;
-                return nextState;
+                return Immutable.from(state.state || {});
             }
             else if (state != undefined) {
                 // merge the state with existing state
-                constance_1.Reflux.state = constance_1.Reflux.state.merge(state, { deep: true });
+                return state_1.State.current.merge(state, { deep: true });
             }
-            return state;
         })
             .skipWhile(function (state, i) { return i + 1 < subscriptions.length; })
             .map(function (state) {
             if (state != undefined) {
-                constance_1.Reflux.stateStream.next(constance_1.Reflux.state);
+                state_1.State.next(state);
             }
             return state;
         })
@@ -138,10 +134,12 @@ var Action = (function () {
             // to trigger observable
             observable.subscribe(function () {
                 // empty function
-            }, reject, resolve);
+            }, reject, function () { return resolve(state_1.State.current); });
         });
     };
     return Action;
 }());
+Action.identities = [];
+Action.subscriptions = [];
 exports.Action = Action;
 //# sourceMappingURL=action.js.map

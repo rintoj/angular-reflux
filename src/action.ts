@@ -6,11 +6,13 @@ import 'rxjs/add/operator/mergeMap'
 import 'rxjs/add/operator/share'
 import 'rxjs/add/operator/skipWhile'
 
+import * as Immutable from 'seamless-immutable'
+
 import { ActionObserver } from './observers'
 import { Observable } from 'rxjs/Observable'
 import { Observer } from 'rxjs/Observer'
-import { Reflux } from './constance'
 import { ReplaceableState } from './replaceable-state'
+import { State } from './state'
 
 /**
  * Defines an action which an be extended to implement custom actions for a reflux application
@@ -40,6 +42,10 @@ import { ReplaceableState } from './replaceable-state'
  */
 export class Action {
 
+  private static _lastAction: Action
+  private static identities: any[] = []
+  private static subscriptions: any[] = []
+
   /**
    * The last action occurred
    *
@@ -49,7 +55,7 @@ export class Action {
    * @memberOf Action
    */
   public static get lastAction() {
-    return Reflux.lastAction
+    return Action.lastAction
   }
 
   /**
@@ -59,10 +65,10 @@ export class Action {
    * @type {string}
    */
   get identity(): string {
-    let id = Reflux.actionIdentities.indexOf(this.constructor)
+    let id = Action.identities.indexOf(this.constructor)
     if (id < 0) {
-      Reflux.actionIdentities.push(this.constructor)
-      id = Reflux.actionIdentities.indexOf(this.constructor)
+      Action.identities.push(this.constructor)
+      id = Action.identities.indexOf(this.constructor)
     }
     return `c${id}`
   }
@@ -75,10 +81,10 @@ export class Action {
    * @returns {Action}
    */
   public subscribe(actionObserver: ActionObserver, context: any): Action {
-    if (!Reflux.subscriptions[this.identity]) {
-      Reflux.subscriptions[this.identity] = []
+    if (!Action.subscriptions[this.identity]) {
+      Action.subscriptions[this.identity] = []
     }
-    Reflux.subscriptions[this.identity].push(actionObserver.bind(context))
+    Action.subscriptions[this.identity].push(actionObserver.bind(context))
     return this
   }
 
@@ -90,8 +96,8 @@ export class Action {
    */
   dispatch(): Promise<any> {
 
-    Reflux.lastAction = this
-    let subscriptions: ActionObserver[] = Reflux.subscriptions[this.identity]
+    Action._lastAction = this
+    let subscriptions: ActionObserver[] = Action.subscriptions[this.identity]
     if (subscriptions == undefined || subscriptions.length === 0) {
       return new Promise(resolve => resolve())
     }
@@ -100,7 +106,7 @@ export class Action {
 
       // convert 'Observable' returned by action subscribers to state
       .flatMap((actionObserver: ActionObserver): Observable<any> => {
-        const result = actionObserver(Reflux.state, this)
+        const result = actionObserver(State.current, this)
         if (!(result instanceof Observable || result instanceof Promise)) {
           return Observable.create((observer: Observer<any>) => {
             observer.next(result)
@@ -114,16 +120,11 @@ export class Action {
       .map((state: any) => {
         if (state instanceof ReplaceableState) {
           // replace the state with the new one if not 'undefined'
-          let nextState = (state as ReplaceableState).state
-          if (nextState == undefined) return
-          Reflux.state = nextState
-          return nextState
-
+          return Immutable.from((state as ReplaceableState).state || {})
         } else if (state != undefined) {
           // merge the state with existing state
-          Reflux.state = Reflux.state.merge(state, { deep: true })
+          return State.current.merge(state, { deep: true })
         }
-        return state
       })
 
       // wait until all the subscripts have completed processing
@@ -132,7 +133,7 @@ export class Action {
       // push 'next' state to 'stateStream' if there has been a change to the state
       .map((state: any) => {
         if (state != undefined) {
-          Reflux.stateStream.next(Reflux.state)
+          State.next(state)
         }
         return state
       })
@@ -147,7 +148,7 @@ export class Action {
       // to trigger observable
       observable.subscribe(() => {
         // empty function
-      }, reject, resolve)
+      }, reject, () => resolve(State.current))
     })
   }
 }

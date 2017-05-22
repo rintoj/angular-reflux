@@ -33,6 +33,9 @@ import { ActionObserver } from './observers';
  * @class Action
  */
 export declare class Action {
+    private static _lastAction;
+    private static identities;
+    private static subscriptions;
     /**
      * The last action occurred
      *
@@ -41,7 +44,7 @@ export declare class Action {
      *
      * @memberOf Action
      */
-    static readonly lastAction: Action;
+    static readonly lastAction: any;
     /**
      * Returns identity of this class
      *

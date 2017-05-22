@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Immutable = require("seamless-immutable");
 var BehaviorSubject_1 = require("rxjs/BehaviorSubject");
 var core_1 = require("@angular/core");
 var Observable_1 = require("rxjs/Observable");
@@ -8,13 +9,16 @@ var Observable_1 = require("rxjs/Observable");
  *
  * @example
  *
+ * // replace state
+ * State.next(state)
+ *
  * // subscribe to state stream
- * stateStream.subscribe((state: State) => {
+ * State.subscribe((state: State) => {
  *   // do your action here
  * })
  *
  * // or listen to a portion of the state
- * stateStream
+ * State
  *   .select((state: State) => state.application.pageContainer)
  *   .subscribe((state: State) => {
  *     // do your action here
@@ -24,16 +28,24 @@ var Observable_1 = require("rxjs/Observable");
  * @class StateStream
  * @extends {BehaviorSubject}
  */
-var StateStream = (function () {
-    function StateStream(initialState) {
-        this.subject = new BehaviorSubject_1.BehaviorSubject(initialState);
+var State = (function () {
+    function State() {
+        this.currentState = Immutable.from({});
+        this.subject = new BehaviorSubject_1.BehaviorSubject(this.currentState);
     }
+    Object.defineProperty(State, "current", {
+        get: function () {
+            return State.state.currentState;
+        },
+        enumerable: true,
+        configurable: true
+    });
     /**
      * Publish next state
      * @param state
      */
-    StateStream.prototype.next = function (state) {
-        this.subject.next(state);
+    State.next = function (state) {
+        State.state.subject.next(state);
     };
     /**
      * Subscribe to the stream
@@ -41,8 +53,8 @@ var StateStream = (function () {
      * @param onError
      * @param onComplete
      */
-    StateStream.prototype.subscribe = function (onNext, onError, onComplete) {
-        return this.subject.subscribe(onNext, onError, onComplete);
+    State.subscribe = function (onNext, onError, onComplete) {
+        return State.state.subject.subscribe(onNext, onError, onComplete);
     };
     /**
      * Fires 'next' only when the value returned by this function changed from the previous value.
@@ -51,7 +63,7 @@ var StateStream = (function () {
      * @param {StateSelector<T>} selector
      * @returns {Observable<T>}
      */
-    StateStream.prototype.select = function (selector) {
+    State.select = function (selector) {
         var _this = this;
         return Observable_1.Observable.create(function (subscriber) {
             var previousState;
@@ -65,16 +77,15 @@ var StateStream = (function () {
             return subscription;
         }).share();
     };
-    return StateStream;
+    return State;
 }());
-StateStream.decorators = [
+State.state = new State();
+State.decorators = [
     { type: core_1.Injectable },
 ];
 /** @nocollapse */
-StateStream.ctorParameters = function () { return [
-    null,
-]; };
-exports.StateStream = StateStream;
+State.ctorParameters = function () { return []; };
+exports.State = State;
 /**
  * Run selector function on the given state and return it's result. Return undefined if an error occurred
  *
@@ -94,4 +105,4 @@ function select(state, selector) {
         return undefined;
     }
 }
-//# sourceMappingURL=state-stream.js.map
+//# sourceMappingURL=state.js.map

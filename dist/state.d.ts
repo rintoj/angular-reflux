@@ -6,13 +6,16 @@ import { Subscription } from 'rxjs/Subscription';
  *
  * @example
  *
+ * // replace state
+ * State.next(state)
+ *
  * // subscribe to state stream
- * stateStream.subscribe((state: State) => {
+ * State.subscribe((state: State) => {
  *   // do your action here
  * })
  *
  * // or listen to a portion of the state
- * stateStream
+ * State
  *   .select((state: State) => state.application.pageContainer)
  *   .subscribe((state: State) => {
  *     // do your action here
@@ -22,22 +25,23 @@ import { Subscription } from 'rxjs/Subscription';
  * @class StateStream
  * @extends {BehaviorSubject}
  */
-export declare class StateStream {
-    private state;
+export declare class State {
+    private static state;
+    private currentState;
     private subject;
-    constructor(initialState: any);
+    static readonly current: any;
     /**
      * Publish next state
      * @param state
      */
-    next(state: any): void;
+    static next(state: any): void;
     /**
      * Subscribe to the stream
      * @param onNext
      * @param onError
      * @param onComplete
      */
-    subscribe(onNext: any, onError: any, onComplete: any): Subscription;
+    static subscribe(onNext: any, onError: any, onComplete: any): Subscription;
     /**
      * Fires 'next' only when the value returned by this function changed from the previous value.
      *
@@ -45,5 +49,6 @@ export declare class StateStream {
      * @param {StateSelector<T>} selector
      * @returns {Observable<T>}
      */
-    select(selector: StateSelector): Observable<any>;
+    static select(selector: StateSelector): Observable<any>;
+    constructor();
 }
