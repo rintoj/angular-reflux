@@ -1,5 +1,6 @@
 # v1.1.2
 * refactor internal modules and functions
+* add `initialize()` function
 * add hot reload
 
 # v1.1.1

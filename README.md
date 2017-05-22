@@ -257,7 +257,6 @@ export class TodoStore extends Store {
     });
   }
 }
-
 ```
 
 ## Organizing Stores
