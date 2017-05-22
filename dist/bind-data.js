@@ -41,6 +41,29 @@ function BindData(selector, bindImmediate) {
         var bindingsMeta = Reflect.getMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, target);
         if (!Reflect.hasMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, target)) {
             bindingsMeta = { selectors: {}, subscriptions: [], destroyed: !bindImmediate };
+            var originalInit_1 = target.ngOnInit;
+            target.ngOnInit = function ngOnInit() {
+                var _this = this;
+                var dataBindings = Reflect.getMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined && dataBindings.destroyed === true) {
+                    dataBindings.subscriptions = dataBindings.subscriptions.concat(Object.keys(dataBindings.selectors)
+                        .map(function (key) { return bindData(_this, key, dataBindings.selectors[key]); }));
+                    dataBindings.destroyed = false;
+                    Reflect.defineMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
+                }
+                return originalInit_1 && originalInit_1.call(this);
+            };
+            var originalDestroy_1 = target.ngOnDestroy;
+            target.ngOnDestroy = function ngOnDestroy() {
+                var dataBindings = Reflect.getMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, this);
+                if (dataBindings != undefined) {
+                    dataBindings.subscriptions.forEach(function (subscription) { return subscription.unsubscribe(); });
+                    dataBindings.subscriptions = [];
+                    dataBindings.destroyed = true;
+                    Reflect.defineMetadata(constance_1.REFLUX_DATA_BINDINGS_KEY, dataBindings, this);
+                }
+                return originalDestroy_1 && originalDestroy_1.call(this);
+            };
         }
         bindingsMeta.selectors[propertyKey] = selector;
         if (bindImmediate) {

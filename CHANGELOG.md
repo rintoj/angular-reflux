@@ -1,3 +1,8 @@
+# v1.1.3
+
+* Revert `@BindData` and `DataObserver`
+* Update `README` - Explain hotLoad
+
 # v1.1.2
 * refactor internal modules and functions
 * add `initialize()` function

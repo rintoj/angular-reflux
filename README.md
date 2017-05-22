@@ -204,6 +204,8 @@ add(state: State, action: AddTodoAction): Observable<State> {
 
 ## Initializing State & Enabling HotLoad
 
+You can initialize the app state using the following code.
+
 ```ts
 ...
 import { INITIAL_STATE } from './../state'
@@ -221,6 +223,8 @@ initialize(INITIAL_STATE, {
 })
 export class AppModule { }
 ```
+
+If you set `hotLoad` to true, every change to the state is preserved in localStorage and re-initialized upon refresh. If a state exists in localStorage `INITIAL_STATE` will be ignored. This is very useful for development builds because developers can return to the same screen after every refresh. Remember the screens must written to react to state (reactive UI) in-order to achieve this. `domain` is an optional string to uniquely identify your application.
 
 ## Immutable Application State
 To take advantage of Angular 2’s change detection strategy — OnPush — we need to ensure that the state is indeed immutable. This module uses [seamless-immutable](https://github.com/rtfeldman/seamless-immutable) for immutability.

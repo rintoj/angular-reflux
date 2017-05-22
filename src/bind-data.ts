@@ -44,6 +44,34 @@ export function BindData<S>(selector: StateSelector, bindImmediate?: boolean) {
     let bindingsMeta = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, target)
     if (!Reflect.hasMetadata(REFLUX_DATA_BINDINGS_KEY, target)) {
       bindingsMeta = { selectors: {}, subscriptions: [], destroyed: !bindImmediate }
+
+      let originalInit = target.ngOnInit
+      target.ngOnInit = function ngOnInit() {
+        let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this)
+        if (dataBindings != undefined && dataBindings.destroyed === true) {
+
+          dataBindings.subscriptions = dataBindings.subscriptions.concat(
+            Object.keys(dataBindings.selectors)
+              .map(key => bindData(this, key, dataBindings.selectors[key]))
+          )
+
+          dataBindings.destroyed = false
+          Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this)
+        }
+        return originalInit && originalInit.call(this)
+      }
+
+      let originalDestroy = target.ngOnDestroy
+      target.ngOnDestroy = function ngOnDestroy() {
+        let dataBindings = Reflect.getMetadata(REFLUX_DATA_BINDINGS_KEY, this)
+        if (dataBindings != undefined) {
+          dataBindings.subscriptions.forEach(subscription => subscription.unsubscribe())
+          dataBindings.subscriptions = []
+          dataBindings.destroyed = true
+          Reflect.defineMetadata(REFLUX_DATA_BINDINGS_KEY, dataBindings, this)
+        }
+        return originalDestroy && originalDestroy.call(this)
+      }
     }
 
     bindingsMeta.selectors[propertyKey] = selector
