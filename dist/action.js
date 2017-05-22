@@ -1,6 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Rx_1 = require("rxjs/Rx");
+require("rxjs/add/observable/empty");
+require("rxjs/add/observable/from");
+require("rxjs/add/operator/catch");
+require("rxjs/add/operator/map");
+require("rxjs/add/operator/mergeMap");
+require("rxjs/add/operator/share");
+require("rxjs/add/operator/skipWhile");
+var Observable_1 = require("rxjs/Observable");
 var constance_1 = require("./constance");
 var replaceable_state_1 = require("./replaceable-state");
 /**
@@ -92,13 +99,16 @@ var Action = (function () {
         if (subscriptions == undefined || subscriptions.length === 0) {
             return new Promise(function (resolve) { return resolve(); });
         }
-        var observable = Rx_1.Observable.from(subscriptions)
+        var observable = Observable_1.Observable.from(subscriptions)
             .flatMap(function (actionObserver) {
-            var value = actionObserver(constance_1.Reflux.state, _this);
-            if (!(value instanceof Rx_1.Observable)) {
-                throw 'Store must return "Observable"';
+            var result = actionObserver(constance_1.Reflux.state, _this);
+            if (!(result instanceof Observable_1.Observable || result instanceof Promise)) {
+                return Observable_1.Observable.create(function (observer) {
+                    observer.next(result);
+                    observer.complete();
+                });
             }
-            return value;
+            return result;
         })
             .map(function (state) {
             if (state instanceof replaceable_state_1.ReplaceableState) {
@@ -122,7 +132,7 @@ var Action = (function () {
             }
             return state;
         })
-            .catch(function (error) { return Rx_1.Observable.empty(); })
+            .catch(function (error) { return Observable_1.Observable.empty(); })
             .share();
         return new Promise(function (resolve, reject) {
             // to trigger observable

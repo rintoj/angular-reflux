@@ -1,1 +1,1 @@
-{"version":3,"file":"data-observer.js","sourceRoot":"","sources":["../src/data-observer.ts"],"names":[],"mappings":";;AAEA;;;;;;;;;;GAUG;AACH;IAAA;IASA,CAAC;IAPC,+BAAQ,GAAR;QACE,iDAAiD;IACnD,CAAC;IAED,kCAAW,GAAX;QACE,iDAAiD;IACnD,CAAC;IACH,mBAAC;AAAD,CAAC,AATD,IASC;AATY,oCAAY"}
+{"version":3,"sources":["../src/data-observer.ts"],"names":[],"mappings":";;AAEA;;;;;;;;;;GAUG;AACH;IAAA;IASA,CAAC;IAPC,+BAAQ,GAAR;QACE,iDAAiD;IACnD,CAAC;IAED,kCAAW,GAAX;QACE,iDAAiD;IACnD,CAAC;IACH,mBAAC;AAAD,CATA,AASC,IAAA;AATY,oCAAY","file":"data-observer.js","sourceRoot":""}

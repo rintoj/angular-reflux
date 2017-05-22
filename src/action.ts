@@ -1,5 +1,14 @@
+import 'rxjs/add/observable/empty'
+import 'rxjs/add/observable/from'
+import 'rxjs/add/operator/catch'
+import 'rxjs/add/operator/map'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/share'
+import 'rxjs/add/operator/skipWhile'
+
 import { ActionObserver } from './observers'
-import { Observable } from 'rxjs/Rx'
+import { Observable } from 'rxjs/Observable'
+import { Observer } from 'rxjs/Observer'
 import { Reflux } from './constance'
 import { ReplaceableState } from './replaceable-state'
 
@@ -91,11 +100,14 @@ export class Action {
 
       // convert 'Observable' returned by action subscribers to state
       .flatMap((actionObserver: ActionObserver): Observable<any> => {
-        let value = actionObserver(Reflux.state, this)
-        if (!(value instanceof Observable)) {
-          throw 'Store must return "Observable"'
+        const result = actionObserver(Reflux.state, this)
+        if (!(result instanceof Observable || result instanceof Promise)) {
+          return Observable.create((observer: Observer<any>) => {
+            observer.next(result)
+            observer.complete()
+          })
         }
-        return value
+        return result
       })
 
       // merge or replace state

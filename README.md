@@ -157,6 +157,51 @@ export class TodoComponent extends DataObserver {
 
 Remember to extend your class from `DataObserver`. It is essential to instruct Angular Compiler to keep `ngOnInit` and `ngOnDestroy` life cycle events, which can only be achieved by implementing `OnInit` and `OnDestroy` interfaces. Because of this constraint all components using `@BindData` must extend itself from `DataObserver` which sets `ngOnInit` and `ngOnDestroy` properly; `@BindData` inturn depends on these functions. However if you would like to extend your class from your-own base class you may do so after making sure `ngOnInit` and `ngOnDestroy` are implemented properly.
 
+## Reducer Functions & Async Tasks
+
+Reducer functions can return either of the following
+
+1. A portion of the application state as plain object
+```ts
+@BindAction()
+add(state: State, action: AddTodoAction): State {
+  return {
+    todos: (state.todos || []).concat(action.todo)
+  }
+}
+```
+
+2. A portion of the application state wrapped in Promise, if it needs to perform an async task.
+```ts
+@BindAction()
+add(state: State, action: AddTodoAction): Promise<AppStore> {
+  return new Promise((resolve, reject) => {
+    asyncTask().then(() => {
+      resolve({
+        todos: (state.todos || []).concat(action.todo)
+      })
+    })
+  })
+}
+```
+
+3. A portion of the application state wrapped in Observables, if the application state needs update multiple times over a period of time, all when handling an action. For example, you have to show loader before starting the process, and hide loader after you have done processing, you may use this.
+```ts
+@BindAction()
+add(state: State, action: AddTodoAction): Observable<State> {
+  return Observable.create((observer: Observer<State>) => {
+    observer.next({ showLoader: true })
+    asyncTask().then(() => {
+      observer.next({
+        todos: (state.todos || []).concat(action.todo),
+        showLoader: false
+      })
+      observer.complete()
+    })
+  })
+}
+```
+
 ## Immutable Application State
 To take advantage of Angular 2’s change detection strategy — OnPush — we need to ensure that the state is indeed immutable. This module uses [seamless-immutable](https://github.com/rtfeldman/seamless-immutable) for immutability.
 

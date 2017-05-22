@@ -1,3 +1,8 @@
+# v1.1.1
+
+* API Change: (non-breaking) Reducer function now return either of Observable, Promise or Application State as an object itself
+* Optimization: Observable and observer uses only the required operator, reducing the overall size of the library
+
 # v1.1.0
 
 * Add `DataObserver` class to prevent angular compiler from removing `ngOnInit` and `ngOnDestroy` functions

@@ -13,7 +13,7 @@
     "clean": "rimraf dist && rimraf compiled",
     "tsc": "node_modules/typescript/bin/tsc",
     "tslint": "tslint",
-    "ngc": "ngc",
+    "ngc": "node_modules/.bin/ngc",
     "watch": "npm run tsc -- -w"
   },
   "repository": {
@@ -36,19 +36,22 @@
   },
   "homepage": "https://github.com/rintoj/angular-reflux#readme",
   "devDependencies": {
+    "@angular/cli": "^1.0.4",
     "@angular/common": "2.4.10",
     "@angular/compiler": "2.4.10",
+    "@angular/compiler-cli": "^4.1.3",
     "@angular/core": "2.4.10",
     "@angular/platform-browser": "2.4.10",
     "@angular/platform-browser-dynamic": "2.4.10",
     "@types/node": "6.0.45",
     "@types/seamless-immutable": "^6.1.2",
-    "codelyzer": "1.0.0-beta.2",
     "rimraf": "^2.6.1",
     "rxjs": "5.2.0",
-    "seamless-immutable": "7.1.1",
     "tslint": "4.5.1",
     "typescript": "2.2.1",
     "zone.js": "0.8.5"
+  },
+  "dependencies": {
+    "seamless-immutable": "7.1.1"
   }
 }
