@@ -2,6 +2,9 @@
 # angular-reflux
 This module will help you implement a unidirectional data flow (Flux architecture) for an Angular 2 (or above) application in an elegant way. This is inspired by [refluxjs](https://github.com/reflux/refluxjs) and [redux](http://redux.js.org/).
 
+## This project is migrated to [StateX](https://github.com/rintoj/statex)
+**This project is no longer maintained. To know how to migrate to StateX [read this](https://github.com/rintoj/statex#migrating-from-angular-reflux)**
+
 ## Update (24 Mar 2017)
 
 Since version `1.0.0`, this module is compatible with Angular's Ahead-of-Time Compilation (AOT). I have updated all examples to reflect this change. If you are here for the first time, never mind, continue reading. But if you have had used this module before and you want to refactor your code to make it AOT compatible check [Making Your Code AOT Compatible](#making-your-code-aot-compatible) section.

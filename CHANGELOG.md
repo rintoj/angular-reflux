@@ -1,3 +1,7 @@
+# v1.1.4
+
+* deprecate - this project is migrated to [StateX](https://github.com/rintoj/statex)
+
 # v1.1.3
 
 * Revert `@BindData` and `DataObserver`
